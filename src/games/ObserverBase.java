@@ -176,7 +176,9 @@ abstract public class ObserverBase implements StateObservation {
 	 */
 	public double getGameScore(int player) {
     	assert (this.getNumPlayers()<=2) : "ObserverBase's implementation of getGameScore(int) is not valid for current class";
-		return (this.getPlayer() == player ? this.getGameScore(this) : (-1)*this.getGameScore(this) );
+		int p = this.getPlayer();
+		double score = this.getGameScore(this);
+    	return (this.getPlayer() == player ? this.getGameScore(this) : (-1)*this.getGameScore(this) );
 	}
 	
 	/**

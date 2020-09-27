@@ -5,6 +5,7 @@ import games.StateObservation;
 import games.TicTacToe.TicTDBase;
 import tools.Types.ACTIONS;
 
+import javax.print.DocFlavor;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -22,14 +23,19 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
     private static final double REWARD_NEGATIVE = -1.0;
     private static final double REWARD_POSITIVE =  1.0;
 
-	private int[][] m_Table;		// current board position
+    private static final int STARTING_PLAYER = 0;
+
+    private static final int MOVES = 5;
+
 	private int m_Player;			// player who makes the next move (0/1)
 
 	private Random random = new Random();
 	protected ArrayList<ACTIONS> availableActions = new ArrayList();	// holds all available actions
-	private int turn;
 	private String winning;
 
+	private String s_p0, s_p1;
+
+	private int winning_spot;
 	/**
 	 * change the version ID for serialization only if a newer version is no longer 
 	 * compatible with an older one (older .gamelog containing this object will become 
@@ -38,31 +44,31 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 	private static final long serialVersionUID = 1L;
 
 	public StateObserverPenney() {
-		m_Table = new int[2][3];
-		m_Player = 1;
-		turn = 0;
+
+		s_p0 = "";
+		s_p1 = "";
+
+		//Starting Player
+		m_Player = STARTING_PLAYER;
+
 		setAvailableActions();
 		winning = "";
+
+		// hidden information
 		for(int i = 0;i<50;i++) {
 			winning += Integer.toString((random.nextInt(2)+1));
 		}
 	}
 
+	/**
+	 * Constructor to create a copy of an existing StateObserverPenney.
+	 * @param other StateObserver that should be copied
+	 */
 	public StateObserverPenney(StateObserverPenney other) {
-		m_Table = new int[2][3];
 
-		this.turn = other.turn;
-
-		for(int i = 0;i < 3;i++){
-			this.m_Table[0][i] = other.m_Table[0][i];
-		}
-
-		for(int i = 0;i < 3;i++){
-			this.m_Table[1][i] = other.m_Table[1][i];
-		}
-
+		this.s_p0 = other.s_p0;
+		this.s_p1 = other.s_p1;
 		this.m_Player = other.m_Player;
-
 		this.winning = other.winning;
 		setAvailableActions();
 	}
@@ -74,7 +80,9 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 
     @Override
 	public boolean isGameOver() {
-		return this.m_Table[1][2] > 0 ;
+		// the last action of the game is done by player 1
+		// after the defined number of moves
+		return this.s_p1.length() == MOVES;
 	}
 
     @Override
@@ -104,33 +112,22 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 	@Override
     public String stringDescr() {
 		String sout = "";
-
-		sout += "\r\nPlayer X: ";
-		for (int j=0;j<3;j++)
-			sout = sout + this.m_Table[1][j];
-
-		sout += "\r\nPlayer O: ";
-		for (int j=0;j<3;j++)
-			sout = sout + this.m_Table[0][j];
-
+		sout += "\r\nPlayer 0: " + s_p0;
+		sout += "\r\nPlayer 1: " + s_p1;
  		return sout;
 	}
 
 	public String getDescPlayer(int x){
-		String sout = "";
-		for (int j=0;j<3;j++)
-			sout += this.m_Table[x][j];
-		return sout;
+		return x == 0 ? s_p0:s_p1;
 	}
 	
 	/**
-	 * 
 	 * @return true, if the current position is a win (for either player)
 	 */
-	public boolean win()
-	{
-		return(isGameOver());
+	public boolean win() {
+		return(isGameOver()&&!s_p0.equals(s_p1));
 	}
+
 	/**
 	 * @return 	the game score, i.e. the sum of rewards for the current state. 
 	 * 			For TTT only game-over states have a non-zero game score. 
@@ -141,27 +138,33 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 		int enemy_i = (player_i==0) ? 1 : 0;
 
 		if(isGameOver()) {
-			String player = Integer.toString(m_Table[player_i][0])+ Integer.toString(m_Table[player_i][1])+Integer.toString(m_Table[player_i][2]);
-			String enemy = Integer.toString(m_Table[enemy_i][0])+ Integer.toString(m_Table[enemy_i][1])+Integer.toString(m_Table[enemy_i][2]);
+			String player = player_i == 0?s_p0:s_p1;
+			String enemy = enemy_i == 0?s_p0:s_p1;
 
 			if(player.equals(enemy))
 				return 0 ;
-			System.out.println(winning);
-			for(int i = 0; i<this.winning.length()-2;i++){
-				System.out.println(winning.substring(i,i+3));
-				if(player.equals(winning.substring(i,i+3)))
+
+			String check = "";
+
+			for(int i = 0; i<this.winning.length()-MOVES+1;i++){
+				check = winning.substring(i,i+MOVES);
+				if(player.equals(check)) {
+					this.winning_spot = i;
 					return 1;
-				if(enemy.equals(winning.substring(i,i+3)))
+				}
+				if(enemy.equals(check)) {
+					this.winning_spot = i;
 					return -1;
+				}
 			}
         }
         return 0; 
 	}
 
-	public String getWinState(){
+	public String getWinning(){
 		return this.winning;
 	}
-
+	public int getWinning_spot() {return this.winning_spot;}
 	public double getMinGameScore() { return REWARD_NEGATIVE; }
 	public double getMaxGameScore() { return REWARD_POSITIVE; }
 
@@ -174,10 +177,15 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 	public void advance(ACTIONS action) {
 		int iAction = action.toInt();
 		assert (0<=iAction && iAction<2) : "iAction is not in 0,1.";
-    	m_Table[m_Player][turn] = iAction+1;
+    	//m_Table[m_Player][turn] = iAction+1;
     	if(m_Player==0)
-    		turn++;
-		m_Player = m_Player > 0?0:1; // alternating between 0 and 1
+			s_p0 += Integer.toString(iAction+1);
+    	else
+			s_p1 += Integer.toString(iAction+1);
+
+    	m_Player = m_Player > 0?0:1; // alternating between 0 and 1
+		//if(m_Player==STARTING_PLAYER)
+		//	turn++;
 		super.incrementMoveCounter();
 	}
 
@@ -220,8 +228,9 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 		return availableActions.get(i);
 	}
 
+
 	public int[][] getTable() {
-		return m_Table;
+		return new int[2][MOVES];
 	}
 
 	/**
@@ -229,7 +238,7 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 	 * 			Player 0 is X, the player who starts the game. Player 1 is O.
 	 */
 	public int getPlayer() {
-		return m_Player==0?1:0;// (-m_Player+1)/2;
+		return m_Player;
 	}
 	
 	public int getNumPlayers() {

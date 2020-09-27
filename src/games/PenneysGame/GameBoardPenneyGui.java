@@ -5,7 +5,6 @@ import games.Arena.Task;
 import tools.ScoreTuple;
 import tools.Types;
 
-import javax.print.DocFlavor;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -13,30 +12,27 @@ import java.awt.event.ActionListener;
 import java.util.Random;
 
 /**
- * Class GameBoardTTTGui has the board game GUI. 
- * <p>
- * It shows board game states, optionally the values of possible next actions,
- * and allows user interactions with the board to enter legal moves during 
- * game play or to enter board positions for which the agent reaction is 
- * inspected. 
- * 
- * @author Wolfgang Konen, TH Koeln, 2016-2020
+ * Graphical User Interface for a simple version of the Penney's Game.
+ *
+ * @author Tim Zeh
  *
  */
 public class GameBoardPenneyGui extends JFrame {
 
-	private int TICGAMEHEIGHT=280;
+	private int GAMEHEIGHT = 500;
+
 	private JPanel BoardPanel;
+
 	private JLabel leftInfo=new JLabel("");
 	private JLabel rightInfo=new JLabel("");
-//	protected Arena  m_Arena;		// a reference to the Arena object, needed to
-									// infer the current taskState
+
 	protected Random rand;
 
-	private JLabel gameStatePlayer1=new JLabel("");
-	private JLabel gameStatePlayer2=new JLabel("");
+	private JLabel gameStatePlayer0 = new JLabel("");
+	private JLabel gameStatePlayer1 = new JLabel("");
+
 	private JLabel winState=new JLabel("?");
-//	private StateObserverTTT m_so;
+
 	private int[][] Table;			// =1: position occupied by "X" player
 									//=-1: position occupied by "O" player
 	private double[][] VTable;
@@ -59,8 +55,8 @@ public class GameBoardPenneyGui extends JFrame {
 	
     private void initGui(String title) 
 	{
-		gameStatePlayer1   = new JLabel();
-		gameStatePlayer2   = new JLabel();
+		gameStatePlayer0 = new JLabel();
+		gameStatePlayer1 = new JLabel();
 		BoardPanel	= InitBoard();
 
 		Table       = new int[3][3];
@@ -69,9 +65,10 @@ public class GameBoardPenneyGui extends JFrame {
         rand 		= new Random(System.currentTimeMillis());	
 
 		JPanel titlePanel = new JPanel();
+
 		titlePanel.setBackground(Types.GUI_BGCOLOR);
 
-		JLabel Blank=new JLabel(" ");		// a little bit of space
+		JLabel Blank = new JLabel(" My Title ");		// a little bit of space
 
 		titlePanel.add(Blank);
 
@@ -94,11 +91,12 @@ public class GameBoardPenneyGui extends JFrame {
 
 		add(titlePanel,BorderLayout.NORTH);
 
-		add(boardPanel,BorderLayout.CENTER);
+		add(BoardPanel,BorderLayout.CENTER);
 
 		add(infoPanel,BorderLayout.SOUTH);
 
 		pack();
+
 		setVisible(false);		// note that the true size of this component is set in 
 								// showGameBoard(Arena,boolean)
 	}
@@ -107,15 +105,17 @@ public class GameBoardPenneyGui extends JFrame {
 	private JPanel InitBoard()
 	{
 		JPanel panel=new JPanel();
-		//JButton b = new JButton();
-		panel.setLayout(new GridLayout(3,2,2,2));
+		panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
+
 
 		Font font=new Font("Arial",Font.BOLD,Types.GUI_HELPFONTSIZE);
-		int buSize = (int)(50*Types.GUI_SCALING_FACTOR_X);
+		int buSize = (int)(60*Types.GUI_SCALING_FACTOR_X);
 		Dimension minimumSize = new Dimension(buSize,buSize);
 
-
-		JButton headsButton = new JButton(" H ");
+		JPanel actionPanel = new JPanel();
+		//actionPanel.setLayout(new GridLayout(1,2));
+		actionPanel.setLayout(new FlowLayout());
+		JButton headsButton = new JButton("H");
 
 			headsButton.setFont(font);
 			headsButton.setEnabled(true);
@@ -137,9 +137,8 @@ public class GameBoardPenneyGui extends JFrame {
 				}
 			});
 
-			panel.add(headsButton);
-
-		JButton tailsButton = new JButton(" T ");
+		actionPanel.add(headsButton);
+		JButton tailsButton = new JButton("T");
 
 		tailsButton.setFont(font);
 		tailsButton.setEnabled(true);
@@ -161,20 +160,37 @@ public class GameBoardPenneyGui extends JFrame {
 			}
 		});
 
-		panel.add(tailsButton);
-		panel.add(gameStatePlayer1);
-		panel.add(gameStatePlayer2);
-		panel.add(winState);
+		actionPanel.add(tailsButton);
 
+		JPanel infoPanelP0 = new JPanel();
+		infoPanelP0.setLayout(new FlowLayout());
+		infoPanelP0.add(new Label("Player O: "));
+		infoPanelP0.add(gameStatePlayer0);
+		gameStatePlayer0.setText("");
+
+
+		JPanel infoPanelP1 = new JPanel();
+		infoPanelP1.setLayout(new FlowLayout());
+		infoPanelP1.add(new Label("Player 1: "));
+		infoPanelP1.add(gameStatePlayer1);
 		gameStatePlayer1.setText("");
-		gameStatePlayer2.setText("");
+
+		JPanel infoPanelWin = new JPanel();
+		infoPanelWin.setLayout(new FlowLayout());
+		infoPanelWin.add(new Label("Winning: "));
+		infoPanelWin.add(winState);
+
+		panel.add(actionPanel);
+		panel.add(infoPanelP0);
+		panel.add(infoPanelP1);
+		panel.add(infoPanelWin);
 		return panel;
 	}
 	
 	public void clearBoard(boolean boardClear, boolean vClear) {
 		if (boardClear) {
+			gameStatePlayer0.setText("");
 			gameStatePlayer1.setText("");
-			gameStatePlayer2.setText("");
 			winState.setText("");
 		}
 		if (vClear) {
@@ -200,9 +216,9 @@ public class GameBoardPenneyGui extends JFrame {
 			int Player=soP.getPlayer();
 			switch(Player) {
 			case(0):
-				leftInfo.setText("Player 1 to move"); break;
+				leftInfo.setText("Player 0 to move"); break;
 			case(1):
-				leftInfo.setText("Player 2 to move"); break;
+				leftInfo.setText("Player 1 to move"); break;
 			}
 
 			if (soP.isGameOver()) {
@@ -210,14 +226,18 @@ public class GameBoardPenneyGui extends JFrame {
 				int winner = sc.argmax();
 				if (sc.max()==0.0) winner = -2;	// tie indicator
 				switch(winner) {
-				case( 0): 
+				case( 0 ):
+					leftInfo.setText("Player 0 has won"); break;
+				case( 1 ):
 					leftInfo.setText("Player 1 has won"); break;
-				case( 1):
-					leftInfo.setText("Player 2 has won"); break;
 				case(-2):
 					leftInfo.setText("Tie         "); break;
 				}
-				winState.setText(this.m_gb.getStateObs().getWinState().replace("1","H").replace("2","T"));
+
+				int spot = soP.getWinning_spot();
+				String tosses = soP.getWinning().replace("1","H").replace("2","T");
+
+				winState.setText(tosses.substring(0,spot)+" || "+tosses.substring(spot,spot+5)+" || "+tosses.substring(spot+5));
 				this.repaint();
 			}
 			/*
@@ -267,8 +287,8 @@ public class GameBoardPenneyGui extends JFrame {
 	{		
 		double value, maxvalue=Double.NEGATIVE_INFINITY;
 		String valueTxt;
+		gameStatePlayer0.setText(this.m_gb.getStateObs().getDescPlayer(0).replace("1","H").replace("2","T"));
 		gameStatePlayer1.setText(this.m_gb.getStateObs().getDescPlayer(1).replace("1","H").replace("2","T"));
-		gameStatePlayer2.setText(this.m_gb.getStateObs().getDescPlayer(0).replace("1","H").replace("2","T"));
 		this.repaint();
 //		paint(this.getGraphics());   // this sometimes leave one of the buttons un-painted
 	}		
@@ -287,7 +307,7 @@ public class GameBoardPenneyGui extends JFrame {
 				x = arena.m_ArenaFrame.getX();
 				y = arena.m_ArenaFrame.getY() + arena.m_ArenaFrame.getHeight() +1;
 				this.setSize(arena.m_ArenaFrame.getWidth(),
-							 (int)(Types.GUI_SCALING_FACTOR_Y*TICGAMEHEIGHT));	
+							 (int)(Types.GUI_SCALING_FACTOR_Y* GAMEHEIGHT));
 			}
 			this.setLocation(x,y);	
 		}		
