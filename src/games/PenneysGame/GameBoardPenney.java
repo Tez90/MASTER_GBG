@@ -78,17 +78,13 @@ public class GameBoardPenney implements GameBoard {
 	public void updateBoard(StateObservation so, 
 							boolean withReset, boolean showValueOnGameboard) {
 		StateObserverPenney soT = (StateObserverPenney) so;
-//		if (withReset) soT = new StateObserverTTT();			// empty Table
 		if (so!=null) {
-	        assert (so instanceof StateObserverPenney)
-			: "StateObservation 'so' is not an instance of StateObserverPoker";
+	        assert (so instanceof StateObserverPenney): "StateObservation 'so' is not an instance of StateObserverPoker";
 			m_so = soT.copy();
 		} // if(so!=null)
 
 		if (m_gameGui!=null)
 			m_gameGui.updateBoard(soT, withReset, showValueOnGameboard);
-
-
 	}
 
 	/**

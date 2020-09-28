@@ -25,9 +25,12 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 
     private static final int STARTING_PLAYER = 0;
 
-    private static final int MOVES = 5;
+    private static final int MOVES = 3;
 
 	private int m_Player;			// player who makes the next move (0/1)
+
+	private int winner;
+	private int winningSpot;
 
 	private Random random = new Random();
 	protected ArrayList<ACTIONS> availableActions = new ArrayList();	// holds all available actions
@@ -54,10 +57,6 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 		setAvailableActions();
 		winning = "";
 
-		// hidden information
-		for(int i = 0;i<50;i++) {
-			winning += Integer.toString((random.nextInt(2)+1));
-		}
 	}
 
 	/**
@@ -65,7 +64,6 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 	 * @param other StateObserver that should be copied
 	 */
 	public StateObserverPenney(StateObserverPenney other) {
-
 		this.s_p0 = other.s_p0;
 		this.s_p1 = other.s_p1;
 		this.m_Player = other.m_Player;
@@ -134,30 +132,14 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 	 * 			It is the reward from the perspective of {@code refer}.
 	 */
 	public double getGameScore(StateObservation refer) {
-		int player_i = refer.getPlayer();
-		int enemy_i = (player_i==0) ? 1 : 0;
-
 		if(isGameOver()) {
-			String player = player_i == 0?s_p0:s_p1;
-			String enemy = enemy_i == 0?s_p0:s_p1;
-
-			if(player.equals(enemy))
-				return 0 ;
-
-			String check = "";
-
-			for(int i = 0; i<this.winning.length()-MOVES+1;i++){
-				check = winning.substring(i,i+MOVES);
-				if(player.equals(check)) {
-					this.winning_spot = i;
-					return 1;
-				}
-				if(enemy.equals(check)) {
-					this.winning_spot = i;
-					return -1;
-				}
-			}
-        }
+			int player_i = refer.getPlayer();
+			if(this.winner==-1)
+				return 0;
+			if(player_i == this.winner)
+				return 1;
+			return -1;
+		}
         return 0; 
 	}
 
@@ -183,10 +165,57 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
     	else
 			s_p1 += Integer.toString(iAction+1);
 
-    	m_Player = m_Player > 0?0:1; // alternating between 0 and 1
+    	// Switch between every move
+    	//m_Player = m_Player > 0?0:1; // alternating between 0 and 1
+
+		// Switch after wull selection
+		if(s_p0.length()==MOVES) {
+			m_Player = 1;
+			if(s_p1.length() == MOVES)
+				findWinner();
+		}
+
 		//if(m_Player==STARTING_PLAYER)
 		//	turn++;
 		super.incrementMoveCounter();
+	}
+
+	private void findWinner(){
+		if(s_p0.length() == MOVES && s_p1.length() == MOVES && this.winning.equals("")){
+			if(s_p0.equals(s_p1)) {
+				winner = -1;
+			}else{
+				int x = 0;
+				for (int i = 0; i < MOVES; i++) {
+					winning += Integer.toString((random.nextInt(2) + 1));
+				}
+				do{
+					String check = winning.substring(x);
+					if(s_p0.equals(check)) {
+						//Winner = P0
+						winner = 0;
+						break;
+					}
+					if(s_p1.equals(check)) {
+						//Winner = P1;
+						winner = 1;
+						break;
+					}
+					winning += Integer.toString((random.nextInt(2) + 1));
+					x++;
+				}while(true);
+				winning_spot = x;
+				System.out.println("-------------------------------");
+				System.out.println(System.currentTimeMillis());
+				System.out.println("The Winner is Player "+winner+
+						"\r\nPlayer O:"+s_p0+
+						"\r\nPlayer X:"+s_p1+
+						"\r\nCointosses:"+winning+
+						"\r\nWinning:"+winning_spot);
+
+				System.out.println("-------------------------------");
+			}
+		}
 	}
 
     /**
@@ -230,7 +259,12 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 
 
 	public int[][] getTable() {
-		return new int[2][MOVES];
+		int[][] table = new int[2][MOVES];
+		for(int i = 0;i<MOVES;i++){
+			table[0][i] = s_p0.charAt(i);
+			table[1][i] = s_p0.charAt(i);
+		}
+		return table;
 	}
 
 	/**
