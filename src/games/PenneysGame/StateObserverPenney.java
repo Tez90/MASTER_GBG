@@ -30,7 +30,6 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 	private int m_Player;			// player who makes the next move (0/1)
 
 	private int winner;
-	private int winningSpot;
 
 	private Random random = new Random();
 	protected ArrayList<ACTIONS> availableActions = new ArrayList();	// holds all available actions
@@ -55,8 +54,9 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 		m_Player = STARTING_PLAYER;
 
 		setAvailableActions();
+		winner = -1;
 		winning = "";
-
+		winning_spot = 0;
 	}
 
 	/**
@@ -68,6 +68,8 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 		this.s_p1 = other.s_p1;
 		this.m_Player = other.m_Player;
 		this.winning = other.winning;
+		this.winning_spot = other.winning_spot;
+		this.winner = other.winner;
 		setAvailableActions();
 	}
 
@@ -79,7 +81,7 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
     @Override
 	public boolean isGameOver() {
 		// the last action of the game is done by player 1
-		// after the defined number of moves
+		// after the defined number of movesq
 		return this.s_p1.length() == MOVES;
 	}
 

@@ -237,7 +237,7 @@ public class GameBoardPenneyGui extends JFrame {
 				int spot = soP.getWinning_spot();
 				String tosses = soP.getWinning().replace("1","H").replace("2","T");
 
-				winState.setText(tosses.substring(0,spot)+" || "+tosses.substring(spot,spot+3)+" || "+tosses.substring(spot+3));
+				winState.setText(tosses.substring(0,spot)+" || "+tosses.substring(spot)+" ||");
 				this.repaint();
 			}
 			/*

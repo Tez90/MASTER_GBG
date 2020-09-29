@@ -168,21 +168,30 @@ public class StateObserverPoker extends ObserverBase implements StateObservation
 
 	/**
 	 * Advance the current state with 'action' to a new state
+	 * Actions:
+	 * - fold: 0
+	 * - check:
+	 * - bet:
+	 * - call:
+	 * - raise[1]:
+	 * - raise[2]:
+	 * - raise[3]:
+	 * - raise[4]:
+	 * - raise[5]:
+	 *
 	 * @param action
 	 */
 	public void advance(ACTIONS action) {
 		int iAction = action.toInt();
-		assert (0<=iAction && iAction<9) : "iAction is not in 0,1,...,8.";
-		int j=iAction%3;
-		int i=(iAction-j)/3;		// reverse: iAction = 3*i + j
-		
-		assert m_Table[i][j]==0 : "The desired move would alter an already occupied field!";
-    	m_Table[i][j] = m_Player;
-    	
+		assert (availableActions.contains(iAction)) : "iAction is not available";
+
+
+
     	setAvailableActions(); 		// IMPORTANT: adjust the available actions (have reduced by one)
-    	
+
+		// next player
 		m_Player = m_Player*(-1);    // 2-player games: 1,-1,1,-1,...
-    		
+
 		super.incrementMoveCounter();
 	}
 
