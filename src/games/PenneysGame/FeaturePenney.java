@@ -49,7 +49,7 @@ public class FeaturePenney implements Feature, Serializable {
 		StateObserverPenney so = (StateObserverPenney) sob;
 		int[][] table = so.getTable();
 		int player = Types.PLAYER_PM[so.getPlayer()];
-		double[] input = new double[table.length];
+		double[] input = new double[table[0].length];
 		if(player==1)
 			for(int i=0;i<table.length;i++)
 				input[i] = table[0][i];

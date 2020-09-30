@@ -2,33 +2,10 @@ package src.games.PenneysGame;
 
 import controllers.PlayAgent;
 import games.*;
-import games.TicTacToe.EvaluatorTTT;
-import games.TicTacToe.FeatureTTT;
-import games.TicTacToe.GameBoardTTT;
-import games.TicTacToe.XNTupleFuncsTTT;
 
 import java.io.IOException;
 
-/**
- * {@link Arena} for TicTacToe. It borrows all functionality
- * from the general class {@link Arena}. It only overrides 
- * the abstract methods <ul>
- * <li> {@link Arena#makeGameBoard()}, 
- * <li> {@link Arena#makeEvaluator(PlayAgent, GameBoard, int, int, int)}, and 
- * <li> {@link Arena#makeFeatureClass(int)}, 
- * <li> {@link Arena#makeXNTupleFuncs()}, 
- * </ul> 
- * such that these factory methods return objects of class {@link GameBoardTTT},
- * {@link EvaluatorTTT}, {@link FeatureTTT}, and {@link XNTupleFuncsTTT}, respectively.
- * <p>
- * {@link ArenaPenney} has a short {@link #main(String[])} for launching the non-trainable
- * version of GBG. 
- * 
- * @see GameBoardTTT
- * @see EvaluatorTTT
- * 
- * @author Wolfgang Konen, TH Koeln, Nov'16
- */
+
 public class ArenaPenney extends Arena   {
 	
 	public ArenaPenney(String title, boolean withUI) {
@@ -40,9 +17,9 @@ public class ArenaPenney extends Arena   {
 	 *         {@code agents} directory
 	 */
 	public String getGameName() {
-		return "Penney's Game";
+		return "PenneysGame";
 	}
-	
+
 	/**
 	 * Factory pattern method: make a new GameBoard 
 	 * @return	the game board
@@ -92,7 +69,7 @@ public class ArenaPenney extends Arena   {
 		if (args.length==0) {
 			t_Frame.init();
 		} else {
-			throw new RuntimeException("[Arena.main] args="+args+" not allowed. Use TicTacToeBatch.");
+			throw new RuntimeException("[Arena.main] args="+args+" not allowed.");
 		}
 	}
 	

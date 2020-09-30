@@ -3,6 +3,7 @@ package src.games.PenneysGame;
 import games.ObserverBase;
 import games.StateObservation;
 import games.TicTacToe.TicTDBase;
+import tools.ScoreTuple;
 import tools.Types.ACTIONS;
 
 import javax.print.DocFlavor;
@@ -23,7 +24,7 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
     private static final double REWARD_NEGATIVE = -1.0;
     private static final double REWARD_POSITIVE =  1.0;
 
-    private static final int STARTING_PLAYER = 0;
+    private static final int STARTING_PLAYER = 1;
 
     private static final int MOVES = 3;
 
@@ -45,6 +46,9 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 	 */
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * Constructor to create a new empty StateObserver for Penney's Game.
+	 */
 	public StateObserverPenney() {
 
 		s_p0 = "";
@@ -73,11 +77,18 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 		setAvailableActions();
 	}
 
+	/**
+	 * Creates a copy of the StateObserver.
+	 * @return a copy of the StateObserver.
+	 */
 	public StateObserverPenney copy() {
 		StateObserverPenney sop = new StateObserverPenney(this);
 		return sop;
 	}
 
+	/**
+		@return if the game is over
+	 */
     @Override
 	public boolean isGameOver() {
 		// the last action of the game is done by player 1
@@ -85,30 +96,53 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 		return this.s_p1.length() == MOVES;
 	}
 
+	/**
+	 * Because coin tosses are involved the game is not deterministic.
+	 * @return FALSE
+	 */
     @Override
 	public boolean isDeterministicGame() {
 		return false;
 	}
-	
+
+	/**
+	 * The rewards are only in the final state of the game.
+	 * @return TRUE
+	 */
     @Override
 	public boolean isFinalRewardGame() {
 		return true;
 	}
 
+	/**
+	 * For now I assume that the game can't get into a illegal state.
+	 * @return TRUE
+	 */
     @Override
 	public boolean isLegalState() {
 		return true;
 	}
-	
+
+	/**
+	 * All actions (Heads and Tails) are legal for each move.
+	 * @param act inteded action in a given state
+	 * @return is that a legal action?
+	 */
 	public boolean isLegalAction(ACTIONS act) {
 		return true;
 	}
 
+	/**
+	 * @return String representation of the current state
+	 */
 	@Deprecated
     public String toString() {
     	return stringDescr();
     }
-	
+
+	/**
+	 * @return String representation of the current state
+	 */
 	@Override
     public String stringDescr() {
 		String sout = "";
@@ -117,6 +151,11 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
  		return sout;
 	}
 
+	/**
+	 * Returns the String representation of a certain player
+	 * @param x Player
+	 * @return String representation of the player's selection
+	 */
 	public String getDescPlayer(int x){
 		return x == 0 ? s_p0:s_p1;
 	}
@@ -130,7 +169,7 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 
 	/**
 	 * @return 	the game score, i.e. the sum of rewards for the current state. 
-	 * 			For TTT only game-over states have a non-zero game score. 
+	 * 			For Penney's Game only game-over states have a non-zero game score.
 	 * 			It is the reward from the perspective of {@code refer}.
 	 */
 	public double getGameScore(StateObservation refer) {
@@ -138,7 +177,7 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 			int player_i = refer.getPlayer();
 			if(this.winner==-1)
 				return 0;
-			if(player_i == this.winner)
+			if(this.winner==player_i)
 				return 1;
 			return -1;
 		}
@@ -162,26 +201,24 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 		int iAction = action.toInt();
 		assert (0<=iAction && iAction<2) : "iAction is not in 0,1.";
     	//m_Table[m_Player][turn] = iAction+1;
-    	if(m_Player==0)
+    	if(m_Player==1)
 			s_p0 += Integer.toString(iAction+1);
     	else
 			s_p1 += Integer.toString(iAction+1);
 
-    	// Switch between every move
-    	//m_Player = m_Player > 0?0:1; // alternating between 0 and 1
-
 		// Switch after wull selection
 		if(s_p0.length()==MOVES) {
-			m_Player = 1;
+			m_Player = -1;
 			if(s_p1.length() == MOVES)
 				findWinner();
 		}
 
-		//if(m_Player==STARTING_PLAYER)
-		//	turn++;
 		super.incrementMoveCounter();
 	}
 
+	/**
+	 * "tosses a coin" to determine the winner of the game.
+	 */
 	private void findWinner(){
 		if(s_p0.length() == MOVES && s_p1.length() == MOVES && this.winning.equals("")){
 			if(s_p0.equals(s_p1)) {
@@ -194,12 +231,10 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 				do{
 					String check = winning.substring(x);
 					if(s_p0.equals(check)) {
-						//Winner = P0
 						winner = 0;
 						break;
 					}
 					if(s_p1.equals(check)) {
-						//Winner = P1;
 						winner = 1;
 						break;
 					}
@@ -207,6 +242,7 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 					x++;
 				}while(true);
 				winning_spot = x;
+
 				System.out.println("-------------------------------");
 				System.out.println(System.currentTimeMillis());
 				System.out.println("The Winner is Player "+winner+
@@ -214,7 +250,6 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 						"\r\nPlayer X:"+s_p1+
 						"\r\nCointosses:"+winning+
 						"\r\nWinning:"+winning_spot);
-
 				System.out.println("-------------------------------");
 			}
 		}
@@ -254,17 +289,22 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 		availableActions.add(ACTIONS.fromInt(0));
 		availableActions.add(ACTIONS.fromInt(1));
 	}
-	
+
+
 	public ACTIONS getAction(int i) {
 		return availableActions.get(i);
 	}
 
-
+	/**
+	 *  Returns the gamestate in form of a two dimensional array.
+	 */
 	public int[][] getTable() {
 		int[][] table = new int[2][MOVES];
 		for(int i = 0;i<MOVES;i++){
-			table[0][i] = s_p0.charAt(i);
-			table[1][i] = s_p0.charAt(i);
+			if(i < s_p0.length())
+				table[0][i] = s_p0.charAt(i);
+			if(i < s_p1.length())
+				table[1][i] = s_p1.charAt(i);
 		}
 		return table;
 	}
@@ -274,7 +314,7 @@ public class StateObserverPenney extends ObserverBase implements StateObservatio
 	 * 			Player 0 is X, the player who starts the game. Player 1 is O.
 	 */
 	public int getPlayer() {
-		return m_Player;
+		return (-m_Player+1)/2;
 	}
 	
 	public int getNumPlayers() {

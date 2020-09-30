@@ -45,7 +45,7 @@ public class ArenaTrainPenney extends ArenaTrain   {
 	 * @return	the game board
 	 */
 	public GameBoard makeGameBoard() {
-		gb = new GameBoardTTT(this);	
+		gb = new GameBoardPenney(this);
 		return gb;
 	}
 	
@@ -62,11 +62,11 @@ public class ArenaTrainPenney extends ArenaTrain   {
 	 * @return
 	 */
 	public Evaluator makeEvaluator(PlayAgent pa, GameBoard gb, int stopEval, int mode, int verbose) {
-		return new EvaluatorTTT(pa,gb,stopEval,mode,verbose);
+		return new EvaluatorPenney(pa,gb,stopEval,mode,verbose);
 	}
 
 	public Feature makeFeatureClass(int featmode) {
-		return new FeatureTTT(featmode);
+		return new FeaturePenney(featmode);
 	}
 
 	public XNTupleFuncs makeXNTupleFuncs() {
@@ -91,7 +91,7 @@ public class ArenaTrainPenney extends ArenaTrain   {
 		if (args.length==0) {
 			t_Frame.init();
 		} else {
-			throw new RuntimeException("[ArenaTrainTTT.main] args="+args+" not allowed. Use TicTacToeBatch.");
+			throw new RuntimeException("[ArenaTrainPenney.main] args="+args+" not allowed.");
 		}
 	}
 	
