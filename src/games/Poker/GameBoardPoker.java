@@ -5,32 +5,17 @@ import games.Arena;
 import games.Arena.Task;
 import games.GameBoard;
 import games.StateObservation;
-import games.TicTacToe.GameBoardTTTGui;
-import games.TicTacToe.StateObserverTTT;
 import tools.Types;
 
 import java.util.ArrayList;
 import java.util.Random;
 
-/**
- * This class implements the GameBoard interface for Poker.
- * Its member {@link GameBoardTTTGui} {@code m_gameGui} has the game board GUI.
- * {@code m_gameGui} may be {@code null} in batch runs. 
- * <p>
- * It implements the interface functions and has the user interaction methods HGameMove and 
- * InspectMove (used to enter legal moves during game play or 'Inspect'), 
- * since these methods need access to local  members. They are called from {@link GameBoardTTTGui}'s
- * action handlers
- * 
- * @author Tim Zeh 2020
- *
- */
 public class GameBoardPoker implements GameBoard {
 
 	protected Arena  m_Arena;		// a reference to the Arena object, needed to
 									// infer the current taskState
 	protected Random rand;
-	private transient GameBoardTTTGui m_gameGui = null;
+	private transient GameBoardPokerGui m_gameGui = null;
 
 	protected StateObserverPoker m_so;
 	private boolean arenaActReq=false;
@@ -75,7 +60,6 @@ public class GameBoardPoker implements GameBoard {
 	public void updateBoard(StateObservation so, 
 							boolean withReset, boolean showValueOnGameboard) {
 		StateObserverPoker soT = (StateObserverPoker) so;
-//		if (withReset) soT = new StateObserverTTT();			// empty Table
 		if (so!=null) {
 	        assert (so instanceof StateObserverPoker)
 			: "StateObservation 'so' is not an instance of StateObserverPoker";
@@ -105,35 +89,18 @@ public class GameBoardPoker implements GameBoard {
 		arenaActReq=actReq;
 	}
 
-	protected void HGameMove(int x, int y)
+
+	// Human Game Move
+	protected void HGameMove(int x)
 	{
-		int iAction = 3*x+y;
-		Types.ACTIONS act = Types.ACTIONS.fromInt(iAction);
+		Types.ACTIONS act = Types.ACTIONS.fromInt(x);
 		assert m_so.isLegalAction(act) : "Desired action is not legal";
 		m_so.advance(act);			// perform action (optionally add random elements from game 
 									// environment - not necessary in TicTacToe)
 		(m_Arena.getLogManager()).addLogEntry(act, m_so, m_Arena.getLogSessionID());
-//		updateBoard(null,false,false);
 		arenaActReq = true;			// ask Arena for next action
 	}
-	
-	protected void InspectMove(int x, int y)
-	{
-		int iAction = 3*x+y;
-		Types.ACTIONS act = Types.ACTIONS.fromInt(iAction);
-		if (!m_so.isLegalAction(act)) {
-			System.out.println("Desired action is not legal!");
-			m_Arena.setStatusMessage("Desired action is not legal");
-			return;
-		} else {
-			m_Arena.setStatusMessage("Inspecting the value function ...");
-		}
-		m_so.advance(act);			// perform action (optionally add random elements from game 
-									// environment - not necessary in TicTacToe)
-//		updateBoard(null,false,false);
-		arenaActReq = true;		
-	}
-	
+
 	public StateObservation getStateObs() {
 		return m_so;
 	}
@@ -192,16 +159,23 @@ public class GameBoardPoker implements GameBoard {
 			m_gameGui.showGameBoard(pokerGame, alignToMain);
 	}
 
- @Override
+	@Override
 	public void toFront() {
 		if (m_gameGui!=null)
 			m_gameGui.toFront();
 	}
 
- @Override
- public void destroy() {
+	@Override
+	public void destroy() {
 		if (m_gameGui!=null)
 			m_gameGui.destroy();
- }
+	}
 
+	/**
+	 * Pass through the number of players in the game
+	 * @return number of players
+	 */
+	public int getNumPlayers(){
+		return m_so.getNumPlayers();
+	}
 }

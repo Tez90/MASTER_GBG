@@ -2,103 +2,73 @@ package src.games.Poker;
 
 import games.Arena;
 import games.Arena.Task;
-import games.Poker.GameBoardPoker;
-import games.Poker.StateObserverPoker;
 import tools.ScoreTuple;
 import tools.Types;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.Random;
 
-/**
- * Class GameBoardTTTGui has the board game GUI. 
- * <p>
- * It shows board game states, optionally the values of possible next actions,
- * and allows user interactions with the board to enter legal moves during 
- * game play or to enter board positions for which the agent reaction is 
- * inspected. 
- * 
- * @author Wolfgang Konen, TH Koeln, 2016-2020
- *
- */
 public class GameBoardPokerGui extends JFrame {
 
-	private int TICGAMEHEIGHT=280;
-	private JPanel BoardPanel;
-	private JLabel leftInfo=new JLabel("");
-	private JLabel rightInfo=new JLabel("");
-//	protected Arena  m_Arena;		// a reference to the Arena object, needed to
-									// infer the current taskState
-	protected Random rand;
-	/**
-	 * The clickable representation of the board in the GUI. The buttons of {@link #Board} will
-	 * be enabled only when "Play" or "Inspect V" are clicked. During "Play" and "Inspect V"
-	 * only unoccupied fields are enabled. The value function of each {@link #Board} position
-	 * is displayed as its label.
-	 */
-	protected JButton[][] Board;
-//	private StateObserverTTT m_so;
-	private int[][] Table;			// =1: position occupied by "X" player
-									//=-1: position occupied by "O" player
-	private double[][] VTable;
-
-	/**
-	 * a reference to the 'parent' {@link GameBoardTTT} object
-	 */
-	private GameBoardTTT m_gb=null;
+	private int POKERGAMEHEIGHT =280;
+	private GameBoardPoker m_gb=null;
+	private pokerForm pf;
 
 	// the colors of the TH Koeln logo (used for button coloring):
 	private Color colTHK1 = new Color(183,29,13);
 	private Color colTHK2 = new Color(255,137,0);
 	private Color colTHK3 = new Color(162,0,162);
 
-	public GameBoardPokerGui(GameBoardTTT gb) {
-		super("Tic Tac Toe");
+	private JLabel[] playerNames;
+	private JLabel[] playerChips;
+	private JLabel[] playerActive;
+	private JLabel[] playerCall;
+	private JPanel[] playerData;
+
+	public GameBoardPokerGui(GameBoardPoker gb) {
+		super("Poker");
 		m_gb = gb;
 		initGui("");
 	}
-	
+
+	private void initPlayerGUI(){
+		playerNames = new JLabel[StateObserverPoker.NUM_PLAYER];
+		playerChips = new JLabel[StateObserverPoker.NUM_PLAYER];
+		playerActive = new JLabel[StateObserverPoker.NUM_PLAYER];
+		playerCall = new JLabel[StateObserverPoker.NUM_PLAYER];
+		playerData = new JPanel[StateObserverPoker.NUM_PLAYER];
+
+		for(int i = 0 ; i < StateObserverPoker.NUM_PLAYER ; i++){
+			playerNames[i] = new JLabel("Player "+Types.GUI_PLAYER_NAME[i]+": ");
+			playerActive[i] = new JLabel();
+			playerCall[i] = new JLabel();
+			playerChips[i] = new JLabel();
+
+			playerData[i] = new JPanel();
+
+			playerData[i].add(playerNames[i]);
+			playerData[i].add(playerActive[i]);
+			playerData[i].add(playerCall[i]);
+			playerData[i].add(playerChips[i]);
+
+			playerData[i].setLayout(new GridLayout(2,2));
+			pf.addPlayerData(playerData[i]);
+		}
+		updatePlayerInfo();
+	}
+
+
     private void initGui(String title) 
 	{
-		Board       = new JButton[3][3];
-		BoardPanel	= InitBoard();
-		Table       = new int[3][3];
-		VTable		= new double[3][3];
-//		m_so		= new StateObserverTTT();	// empty table
-        rand 		= new Random(System.currentTimeMillis());	
-
-		JPanel titlePanel = new JPanel();
-		titlePanel.setBackground(Types.GUI_BGCOLOR);
-		JLabel Blank=new JLabel(" ");		// a little bit of space
-		//JLabel Title=new JLabel("Tic Tac Toe",SwingConstants.CENTER);
-//		JLabel Title=new JLabel("   ",SwingConstants.CENTER);  // no title, it appears sometimes in the wrong place
-//		Title.setForeground(Color.black);	
-//		Title.setFont(font);	
-		titlePanel.add(Blank);
-//		titlePanel.add(Title);
-		
-		JPanel boardPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-		boardPanel.add(BoardPanel);
-		boardPanel.setBackground(Types.GUI_BGCOLOR);
-		
-		JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-		infoPanel.setBackground(Types.GUI_BGCOLOR);
-//		System.out.println("leftInfo size = " +leftInfo.getFont().getSize());
-		Font font=new Font("Arial",0,(int)(1.2*Types.GUI_HELPFONTSIZE));			
-		leftInfo.setFont(font);	
-		rightInfo.setFont(font);	
-//		System.out.println("leftInfo size = " +leftInfo.getFont().getSize());
-		infoPanel.add(leftInfo);
-		infoPanel.add(rightInfo);
-//		infoPanel.setSize(100,10);
-		
-		setLayout(new BorderLayout(10,0));
-		add(titlePanel,BorderLayout.NORTH);				
-		add(boardPanel,BorderLayout.CENTER);
-		add(infoPanel,BorderLayout.SOUTH);
+		pf = new pokerForm(m_gb,StateObserverPoker.NUM_PLAYER);
+		initPlayerGUI();
+		add(pf.gameBoardPanel);
 		pack();
 		setVisible(false);		// note that the true size of this component is set in 
 								// showGameBoard(Arena,boolean)
@@ -108,65 +78,19 @@ public class GameBoardPokerGui extends JFrame {
 	private JPanel InitBoard()
 	{
 		JPanel panel=new JPanel();
-		//JButton b = new JButton();
-		panel.setLayout(new GridLayout(3,3,2,2));
-		int buSize = (int)(50*Types.GUI_SCALING_FACTOR_X);
-		Dimension minimumSize = new Dimension(buSize,buSize); //controls the button sizes
-		for(int i=0;i<3;i++){
-			for(int j=0;j<3;j++){
-				Board[i][j] = new JButton("  ");
-				Board[i][j].setBackground(colTHK2);
-				Board[i][j].setForeground(Color.white);
-				Board[i][j].setMargin(new Insets(0,0,0,0));  // sets zero margin between the button's
-															 // border and the label (so that there 
-															 // is room for big labels)
-				Font font=new Font("Arial",Font.BOLD,Types.GUI_HELPFONTSIZE);
-		        Board[i][j].setFont(font);
-				Board[i][j].setEnabled(false);
-				Board[i][j].setPreferredSize(minimumSize); 
-				Board[i][j].addActionListener(					
-						new ActionHandler(i,j)  // constructor copies (i,j) to members (x,y)
-						{
-							public void actionPerformed(ActionEvent e)
-							{
-								Task aTaskState = m_gb.m_Arena.taskState;
-								if (aTaskState == Task.PLAY)
-								{
-									m_gb.HGameMove(x,y);		// i.e. make human move (i,j), if Board[i][j] is clicked								
-								}
-								if (aTaskState == Task.INSPECTV)
-								{
-									m_gb.InspectMove(x,y);	// i.e. update inspection, if Board[i][j] is clicked								
-								}	
-								int dummy=1;
-							}
-						}
-				);
-				panel.add(Board[i][j]);
-			}
-		}
 		return panel;
 	}
 	
 	public void clearBoard(boolean boardClear, boolean vClear) {
-		if (boardClear) {
-//			m_so = new StateObserverTTT();			// empty Table
-			for(int i=0;i<3;i++){
-				for(int j=0;j<3;j++){
-					Board[i][j].setText("  ");
-					Board[i][j].setBackground(colTHK2);
-					Board[i][j].setForeground(Color.white);
-					Board[i][j].setEnabled(false);
-				}
-			}
-		}
-		if (vClear) {
-			VTable		= new double[3][3];
-			for(int i=0;i<3;i++){
-				for(int j=0;j<3;j++){
-					VTable[i][j] = Double.NaN;
-				}
-			}
+
+	}
+
+	public void updatePlayerInfo(){
+		int[] chips = m_gb.m_so.getChips();
+		boolean[] active = m_gb.m_so.getActivePlayers();
+		for(int i = 0 ; i < StateObserverPoker.NUM_PLAYER ; i++){
+			playerChips[i].setText(Integer.toString(chips[i]));
+			playerActive[i].setText(Boolean.toString(active[i]));
 		}
 	}
 
@@ -180,71 +104,38 @@ public class GameBoardPokerGui extends JFrame {
 	 */
 	public void updateBoard(StateObserverPoker soT,
                             boolean withReset, boolean showValueOnGameboard) {
-		int i,j;
-		if (soT!=null) {
-			//Table = soT.getTable();
-			int Player=Types.PLAYER_PM[soT.getPlayer()];
-			switch(Player) {
-			case(+1): 
-				leftInfo.setText("X to move   "); break;
-			case(-1):
-				leftInfo.setText("O to move   "); break;
+		updatePlayerInfo();
+		pf.updatePot(m_gb.m_so.getPot());
+		pf.updateHoleCards(m_gb.m_so.getHoleCards());
+		pf.updateCommunityCards(m_gb.m_so.getCommunityCards());
+		pf.disableButtons();
+		ArrayList<Types.ACTIONS> actions = m_gb.m_so.getAvailableActions();
+		for (Types.ACTIONS action : actions) {
+			switch (action.toInt()){
+				case 0: // FOLD
+					pf.enableFold();
+					break;
+				case 1: // CHECK
+					pf.enableCheck();
+					break;
+				case 2: // BET
+					pf.enableBet();
+					break;
+				case 3: // CALL
+					pf.enableCall();
+					break;
+				case 4: // RAISE
+					pf.enableRaise();
+					break;
+				case 5: // RAISE
+					pf.enableAllIn();
+					break;
 			}
-			if (soT.isGameOver()) {
-				ScoreTuple sc = soT.getGameScoreTuple();
-				int winner = sc.argmax();
-				if (sc.max()==0.0) winner = -2;	// tie indicator
-				switch(winner) {
-				case( 0): 
-					leftInfo.setText("X has won   "); break;
-				case( 1):
-					leftInfo.setText("O has won   "); break;
-				case(-2):
-					leftInfo.setText("Tie         "); break;
-				}
-				// old code, we want to make getGameWinner obsolete
-//				int win = so.getGameWinner().toInt();
-//				int check = Player*win;
-//				switch(check) {
-//				case(+1): 
-//					leftInfo.setText("X has won   "); break;
-//				case(-1):
-//					leftInfo.setText("O has won   "); break;
-//				case(0):
-//					leftInfo.setText("Tie         "); break;
-//				}
-				
-			}
-			
-			if (showValueOnGameboard) {
-				if (soT.getStoredValues()!=null) {
-					for(i=0;i<3;i++)
-						for(j=0;j<3;j++) 
-							VTable[i][j]=Double.NaN;	
-					
-					for (int k=0; k<soT.getStoredValues().length; k++) {
-						Types.ACTIONS action = soT.getStoredAction(k);
-						int iAction = action.toInt();
-						j=iAction%3;
-						i=(iAction-j)/3;
-						VTable[i][j] = soT.getStoredValues()[k];					
-					}	
-				}
+		}
+		repaint();
+	}
 
-				String splus = (m_gb.m_Arena.taskState == Task.INSPECTV) ? "X" : "O";
-				String sminus= (m_gb.m_Arena.taskState == Task.INSPECTV) ? "O" : "X";
-				switch(Player) {
-				case(+1): 
-					rightInfo.setText("    Score for " + splus); break;
-				case(-1):
-					rightInfo.setText("    Score for " + sminus); break;
-				}					
-			} else {
-				rightInfo.setText("");					
-			}
-		} // if(so!=null)
-		
-		guiUpdateBoard(false,showValueOnGameboard);
+	public void disableButtons(){
 	}
 
 	/**
@@ -257,97 +148,27 @@ public class GameBoardPokerGui extends JFrame {
 	 * <code>true</code>.)
 	 */ 
 	private void guiUpdateBoard(boolean enable, boolean showValueOnGameboard)
-	{		
-		double value, maxvalue=Double.NEGATIVE_INFINITY;
-		String valueTxt;
-		int imax=0,jmax=0;
-		int[][] table = m_gb.m_so.getTable();
-		for(int i=0;i<3;i++){
-			for(int j=0;j<3;j++){
-				if (VTable==null) { 
-					// HumanPlayer and MCTSAgentT do not have a VTable (!)
-					value = Double.NaN;
-				} else {
-					value = VTable[i][j];					
-				}
-				
-				if (Double.isNaN(value)) {
-					valueTxt = "   ";
-				} else {
-					valueTxt = " "+(int)(value*100);
-					if (value<0) valueTxt = ""+(int)(value*100);
-					if (value>maxvalue) {
-						maxvalue=value;
-						imax=i;
-						jmax=j;
-					}
-				}
-				if(table[i][j]==1)
-				{
-					Board[i][j].setText("X");				
-					Board[i][j].setEnabled(enable);
-					Board[i][j].setBackground(Color.black);
-					Board[i][j].setForeground(Color.white);
-				}					
-				else if(table[i][j]==-1)
-				{
-					Board[i][j].setText("O");				
-					Board[i][j].setEnabled(enable);
-					Board[i][j].setBackground(Color.white);
-					Board[i][j].setForeground(Color.black);
-				}
-				else
-				{
-					Board[i][j].setText("  ");
-					Board[i][j].setEnabled(true);
-					Board[i][j].setForeground(Color.black);
-					Board[i][j].setBackground(colTHK2);
-				}
-				if (showValueOnGameboard) Board[i][j].setText(valueTxt);
-			}
-		}
+	{
 		this.repaint();
-//		paint(this.getGraphics());   // this sometimes leave one of the buttons un-painted
-	}		
+	}
 
 	public void enableInteraction(boolean enable) {
 
 	}
 
-	/**
-	 * This class is needed for each ActionListener of {@code Board[i][j]} in 
-	 * {@link #InitBoard()}
-	 *
-	 */
-	class ActionHandler implements ActionListener
-	{
-		int x,y;
-		
-		ActionHandler(int num1,int num2)			
-		{		
-			x=num1;
-			y=num2;
-		}
-		public void actionPerformed(ActionEvent e){}			
-	}
-	
 	public void showGameBoard(Arena arena, boolean alignToMain) {
 		this.setVisible(true);
 		if (alignToMain) {
 			// place window with game board below the main window
-			int x = arena.m_xab.getX() + arena.m_xab.getWidth() + 8;
+			int x = arena.m_xab.getX() + arena.m_xab.getWidth() + 20;
 			int y = arena.m_xab.getLocation().y;
 			if (arena.m_ArenaFrame!=null) {
 				x = arena.m_ArenaFrame.getX();
 				y = arena.m_ArenaFrame.getY() + arena.m_ArenaFrame.getHeight() +1;
-				this.setSize(arena.m_ArenaFrame.getWidth(),
-							 (int)(Types.GUI_SCALING_FACTOR_Y*TICGAMEHEIGHT));	
+				this.setSize(1200,400);
 			}
 			this.setLocation(x,y);	
-		}		
-//		System.out.println("GameBoardTTT size = " +super.getWidth() + " * " + super.getHeight());
-//		System.out.println("Arena size = " +ticGame.m_ArenaFrame.getWidth() + " * " + ticGame.m_ArenaFrame.getHeight());
-
+		}
 	}
 
 	public void toFront() {
