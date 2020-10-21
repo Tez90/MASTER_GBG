@@ -2,6 +2,7 @@ package src.games.Poker;
 
 import game.rules.play.Play;
 import games.ObserverBase;
+import games.StateObsNondeterministic;
 import games.StateObservation;
 import tools.Types.ACTIONS;
 
@@ -20,7 +21,7 @@ import java.util.function.IntFunction;
  * </ul>
  *
  */
-public class StateObserverPoker extends ObserverBase implements StateObservation {
+public class StateObserverPoker extends ObserverBase implements StateObsNondeterministic {
     private static final double REWARD_NEGATIVE = -1.0;
     private static final double REWARD_POSITIVE =  1.0;
 
@@ -45,6 +46,11 @@ public class StateObserverPoker extends ObserverBase implements StateObservation
 	private boolean playingPlayers[];
 	private boolean foldedPlayers[];
 	private Queue<Integer> openPlayers;
+
+	private boolean isNextActionDeterministic;
+	private ACTIONS nextNondeterministicAction;
+	protected List<Integer> availableRandoms = new ArrayList();
+
 
 	private boolean GAMEOVER;
 
@@ -78,7 +84,7 @@ public class StateObserverPoker extends ObserverBase implements StateObservation
 
 		m_Player = openPlayers.remove();
 		setAvailableActions();
-
+		isNextActionDeterministic = true;
 	}
 
 	public StateObserverPoker(StateObserverPoker other)	{
@@ -241,7 +247,45 @@ public class StateObserverPoker extends ObserverBase implements StateObservation
     public String stringDescr() {
 		return "";
 	}
-	
+
+
+	public boolean isNextActionDeterministic() {
+		return isNextActionDeterministic;
+	}
+
+	public ACTIONS getNextNondeterministicAction() {
+		setNextNondeterministicAction();
+		return nextNondeterministicAction;
+	}
+
+	private void setNextNondeterministicAction() {
+		if(isNextActionDeterministic) {
+			throw new RuntimeException("next Action is Deterministic");
+		} else if(nextNondeterministicAction != null) {
+			return;
+		}
+	}
+
+	public ArrayList<ACTIONS> getAvailableRandoms() {
+		ArrayList<ACTIONS> availRan = new ArrayList<>();
+		for(int viableMove : availableRandoms) {
+			availRan.add(ACTIONS.fromInt(viableMove));
+		}
+		return availRan;
+
+	}
+
+	public int getNumAvailableRandoms() {
+		return availableRandoms.size();
+	}
+
+	public double getProbability(ACTIONS action) {
+		int iAction = action.toInt();
+		int numEmptyTiles = iAction/2;
+		double prob = (iAction%2==0) ? 0.9 : 0.1;
+		return prob/numEmptyTiles;
+	}
+
 	/**
 	 * 
 	 * @return true, if the current position is a win (for either player)
@@ -269,7 +313,6 @@ public class StateObserverPoker extends ObserverBase implements StateObservation
 	public void dealCards(){
 
 		// shuffling the deck to make sure we have a random deck
-
 		m_deck.suffle();
 		if(this.m_phase==0){
 			// set small blind
@@ -358,6 +401,12 @@ public class StateObserverPoker extends ObserverBase implements StateObservation
 
 	public int findBestHand(ArrayList<PlayingCard> cards){
 		Random rand = new Random();
+		int[] suits = new int[4];
+		int[] ranks = new int[13];
+		for(PlayingCard c : cards){
+			suits[c.getSuit()]++;
+			ranks[c.getRank()]++;
+		}
 		return rand.nextInt(100);
 	}
 
@@ -504,6 +553,90 @@ public class StateObserverPoker extends ObserverBase implements StateObservation
 
 			setAvailableActions();
 		}
+	}
+
+	public void advanceDeterministic(ACTIONS action) {
+		if(!isNextActionDeterministic) {
+			throw new RuntimeException("Next action is nondeterministic but called advanceDeterministic()");
+		}
+
+		int iAction = action.toInt();
+
+		switch (iAction){
+			case 0: // FOLD
+				fold();
+				break;
+			case 1: // CHECK
+				check();
+				break;
+			case 2: // BET
+				bet(BIGBLIND);
+				break;
+			case 3: // CALL
+				call();
+				break;
+			case 4: // RAISE
+				raise();
+				break;
+			case 5: // RAISE
+				allIn();
+				break;
+
+		}
+
+		if(getNumActivePlayers()<2&&openPlayers.size()==0){
+			isNextActionDeterministic = false;
+		}else {
+			// If there are no persons left with an open action the dealer will reveal the next card(s)
+			if (openPlayers.size() == 0) {
+				isNextActionDeterministic = false;
+			} else {
+				isNextActionDeterministic = true;
+			}
+		}
+		if(!GAMEOVER) {
+			// next player becomes the active one
+			m_Player = openPlayers.remove();
+			setAvailableActions();
+		}
+	}
+
+	public void advanceNondeterministic(ACTIONS action) {
+		advanceNondeterministic();
+	}
+
+	public void advanceNondeterministic() {
+		if(isNextActionDeterministic) {
+			throw new RuntimeException("Next action is deterministic but called advanceNondeterministic()");
+		}
+		// only one active player left and game can progress to showdown
+		if(getNumActivePlayers()<2&&openPlayers.size()==0){
+			while(m_phase<4)
+				dealCards();
+			dealCards();
+		}else {
+			// If there are no persons left with an open action the dealer will reveal the next card(s)
+			if (openPlayers.size() == 0) {
+				System.out.println("Pot "+pots.toString());
+				System.out.println("\r\n------------------------------END---------------------------------------");
+
+				// next player from the last action will have the next action if it's not a showdown
+				m_Player = (m_Player + 1) % NUM_PLAYER;
+				for (int i = m_Player; i < NUM_PLAYER; i++)
+					if (playingPlayers[i] && activePlayers[i])
+						openPlayers.add(i);
+				for (int i = 0; i < m_Player; i++)
+					if (playingPlayers[i] && activePlayers[i])
+						openPlayers.add(i);
+				dealCards();
+			}
+		}
+		if(!GAMEOVER) {
+			// next player becomes the active one
+			m_Player = openPlayers.remove();
+			setAvailableActions();
+		}
+		isNextActionDeterministic = true;
 	}
 
     /**
