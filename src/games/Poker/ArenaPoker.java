@@ -1,11 +1,14 @@
 package src.games.Poker;
 
+import TournamentSystem.tools.TSGameDataTransfer;
 import controllers.PlayAgent;
 import games.*;
 import src.games.PenneysGame.EvaluatorPenney;
 import src.games.PenneysGame.FeaturePenney;
 import src.games.PenneysGame.GameBoardPenney;
 import src.games.PenneysGame.XNTupleFuncsPenney;
+import tools.ScoreTuple;
+import tools.Types;
 
 import java.io.IOException;
 
@@ -59,6 +62,29 @@ public class ArenaPoker extends Arena   {
 
 	public void performArenaDerivedTasks() {  }
 
+	/**
+	 * Build the game-over string (helper for {@link #PlayGame()}, to be shown in MessageBox).
+	 * <p>
+	 * Generic function is not suitable for >3 players.
+	 *
+	 * @param so			the game-over state
+	 * @param agentVec		the names of all agents
+	 * @param spDT			needed only in the tournament-case
+	 * @return
+	 */
+	@Override
+	public String gameOverString(StateObservation so, String[] agentVec, TSGameDataTransfer spDT) {
+		ScoreTuple sc = so.getGameScoreTuple();
+		String goStr="";
+		StateObserverPoker sop = (StateObserverPoker) so;
+		for(int i = 0;i<so.getNumPlayers();i++){
+			if(sop.getChips()[i]>0) {
+				goStr+= Types.GUI_PLAYER_NAME[i]+ " has won!";
+				break;
+			}
+		}
+		return goStr;
+	}
 	
 	/**
 	 * Start GBG for Penney's Game

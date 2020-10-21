@@ -1,9 +1,13 @@
 package src.games.Poker;
 
+import TournamentSystem.tools.TSGameDataTransfer;
 import game.rules.play.Play;
 import games.ObserverBase;
 import games.StateObsNondeterministic;
 import games.StateObservation;
+import games.ZweiTausendAchtundVierzig.StateObserver2048;
+import tools.ScoreTuple;
+import tools.Types;
 import tools.Types.ACTIONS;
 
 import java.lang.management.PlatformLoggingMXBean;
@@ -22,7 +26,21 @@ import java.util.function.IntFunction;
  *
  */
 public class StateObserverPoker extends ObserverBase implements StateObsNondeterministic {
-    private static final double REWARD_NEGATIVE = -1.0;
+
+	public static final int ROYAL_FLUSH = 0;
+	public static final int STRAIGHT_FLUSH = 1;
+	public static final int FOUR_OF_A_KIND = 2;
+	public static final int FULL_HOUSE = 3;
+	public static final int FLUSH = 4;
+	public static final int STRAIGHT = 5;
+	public static final int THREE_OF_A_KIND = 6;
+	public static final int TWO_PAIR = 7;
+	public static final int ONE_PAIR = 8;
+	public static final int HIGH_CARD = 9;
+	public static final int KICKER = 10;
+
+
+	private static final double REWARD_NEGATIVE = -1.0;
     private static final double REWARD_POSITIVE =  1.0;
 
 	public static final int NUM_PLAYER = 4;
@@ -125,7 +143,12 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		for(int i=0;i<communityCards.length;i++)
 			this.communityCards[i]=other.communityCards[i];
 
-		this.availableActions = other.availableActions;
+		setAvailableActions();
+	}
+	
+	public StateObserverPoker copy() {
+		StateObserverPoker sot = new StateObserverPoker(this);
+		return sot;
 	}
 
 	public void initRound(){
@@ -165,14 +188,11 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		while(!playingPlayers[bigBlind])
 			bigBlind = (bigBlind+1)%NUM_PLAYER;
 
-		System.out.println("\r\n-------------------------------START--------------------------------------");
-		System.out.println("Dealer: "+Integer.toString(dealer)+" Smallblind: "+Integer.toString(smallBlind) + " Bigblind: "+Integer.toString(bigBlind));
-
 		if(chips[smallBlind]>SMALLBLIND) {
 			chips[smallBlind] -= SMALLBLIND;
 			pots.add(SMALLBLIND,smallBlind);
 		}else{
-			pots.add(SMALLBLIND,chips[smallBlind],true);
+			pots.add(chips[smallBlind],smallBlind,true);
 			chips[smallBlind] = 0;
 		}
 
@@ -180,7 +200,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			chips[bigBlind] -= BIGBLIND;
 			pots.add(BIGBLIND,bigBlind);
 		}else{
-			pots.add(BIGBLIND,chips[bigBlind],true);
+			pots.add(chips[bigBlind],bigBlind,true);
 			chips[bigBlind] = 0;
 		}
 
@@ -208,13 +228,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	}
 
 
-	
-	public StateObserverPoker copy() {
-		StateObserverPoker sot = new StateObserverPoker(this);
-		return sot;
-	}
-
-    @Override
+	@Override
 	public boolean isGameOver() {
 		return GAMEOVER;
 	}
@@ -374,6 +388,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 				System.out.println("\r\n------------------------------RESULT END---------------------------------------");
 			}
 			initRound();
+			setAvailableActions();
 		}else {
 			m_phase++;
 		}
@@ -391,23 +406,196 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 				cards.add(communityCards[2]);
 				cards.add(communityCards[3]);
 				cards.add(communityCards[4]);
-				handscore[i] = findBestHand(cards);
+				handscore[i] = findMaxScore(findBestHand(cards));
 			}else{
 				handscore[i] = -1;
 			}
 		}
+
 		return handscore;
 	}
 
-	public int findBestHand(ArrayList<PlayingCard> cards){
+	/*
+		ROYAL_FLUSH     = {0-1}   [2]   13^12
+		STRAIGHT_FLUSH  = {5-12}  [8]   13^11
+		FOUR_OF_A_KIND  = {0-12}  [13]  13^10
+		FULL_HOUSE      = {0-181} [182] 13^8
+		FLUSH           = {0-3}   [4];  13^7
+		STRAIGHT        = {5-12}  [8];  13^6
+		THREE_OF_A_KIND = {0-12}  [13]; 13^5
+		TWO_PAIR        = {0-181} [182];13^3
+		ONE_PAIR        = {0-12}  [13]; 13^2
+		HIGH_CARD       = {0-12}  [13]; 13^1
+		KICKER          = {0-12}  [13]; 13^0
+	 */
+	private int findMaxScore(int[] scores){
+		int[] exponent = { 12, 11, 10, 8, 7, 6, 5, 3, 2, 1, 0};
+		for(int i=0;i<scores.length;i++){
+			if(scores[i]>0)
+				return scores[i]*13^exponent[i]+scores[10];
+		}
+		return 0;
+	}
+
+	public int[] findBestHand(ArrayList<PlayingCard> cards){
+
 		Random rand = new Random();
 		int[] suits = new int[4];
 		int[] ranks = new int[13];
+
 		for(PlayingCard c : cards){
+			System.out.print(c.toString()+"   ||   ");
 			suits[c.getSuit()]++;
 			ranks[c.getRank()]++;
 		}
-		return rand.nextInt(100);
+
+		// Checking for "high card"
+		ArrayList<Integer> highCards= new ArrayList<Integer>();
+		for(int i = 12 ; i>=0 ; i--) {
+			if (ranks[i] > 0) {
+				highCards.add(i);
+			}
+		}
+
+		// Checking for "pair", "three of a kind" and "four of a kind"
+		ArrayList<Integer> pairs = new ArrayList<Integer>();
+		int pair = -1;
+
+		ArrayList<Integer> threeOfAKinds = new ArrayList<Integer>();
+		int threeOfAKind = -1;
+
+		ArrayList<Integer> fourOfAKinds = new ArrayList<Integer>();
+		int fourOfAKind = -1;
+
+		pairs.addAll(checkForMultiples(ranks,2));
+		if(pairs.size()>0) {
+			pair = pairs.get(0);
+
+			threeOfAKinds = checkForMultiples(ranks, 3);
+			if(threeOfAKinds.size()>0) {
+				threeOfAKind = threeOfAKinds.get(0);
+
+				fourOfAKinds = checkForMultiples(ranks, 4);
+				if(fourOfAKinds.size()>0) {
+					fourOfAKinds.get(0);
+				}
+			}
+		}
+
+		// Checking for "Flush"
+		int flush = -1;
+		for(int i = 0 ; i < suits.length ; i++) {
+			if(suits[i]>4){
+				flush = i;
+				break;
+			}
+		}
+
+		// Checking for "street"
+		int straight = -1;
+		int streetSize = 0;
+
+		// Check if there is an ace that can start a street (Ace,2,3,4,5)
+		if(ranks[12]>0)
+			streetSize++;
+		for(int i = 0;i<13;i++){
+			if(ranks[i]>0) {
+				streetSize++;
+				if(streetSize>4) {
+					straight = i;
+				}
+			} else {
+				streetSize = 0;
+			}
+		}
+
+		int[] score = new int[11];
+
+		// Check for Royal & Straight Flush
+		if(flush>-1&&straight>-1){
+			short checkStraightFlush = 0;
+			for(PlayingCard c : cards){
+				if(c.getSuit()==flush &&
+						straight-5<c.getRank()&&c.getRank()<=straight){
+					checkStraightFlush++;
+				}
+			}
+			if(checkStraightFlush>=5) {
+				if (straight == 12) {
+					//straight flush!
+					score[ROYAL_FLUSH] = flush+1;
+					return score;
+				}
+				score[STRAIGHT_FLUSH] = straight+1;
+				return score;
+			}
+		}
+
+		if(fourOfAKind>0){
+			score[FOUR_OF_A_KIND] = fourOfAKind+1;
+			highCards.remove(Integer.valueOf(fourOfAKind));
+			score[KICKER] = highCards.get(0)+1;
+			return score;
+		}
+
+		// Checking for "full house"
+		if(threeOfAKind>0){
+			pairs.remove(Integer.valueOf(threeOfAKind));
+			if(pairs.size()>0){
+				score[THREE_OF_A_KIND] = 15*(threeOfAKind+1)+pairs.get(0)+1;
+				return score;
+			}
+		}
+
+		if(flush>-1){
+			//TODO: Wenn mehrere Spieler einen Flush haben (unterschiedliche Farben sind nicht möglich gewinnt der Spieler mit der höchsten Karte, die NICHT alle Spieler haben (also keine Community Karten)
+			score[FLUSH] = flush+1;
+			return score;
+		}
+
+		if(straight>-1){
+			score[STRAIGHT] = straight+1;
+			return score;
+		}
+
+		if(threeOfAKind>-1){
+			score[THREE_OF_A_KIND] = threeOfAKind+1;
+			highCards.remove(Integer.valueOf(threeOfAKind));
+			score[KICKER] = highCards.get(0)+1;
+			return score;
+		}
+
+		if(pairs.size()>1){
+			score[TWO_PAIR] = (pairs.get(0)+1)*15 + pairs.get(1) + 1;
+			highCards.remove(Integer.valueOf(pairs.get(0)));
+			highCards.remove(Integer.valueOf(pairs.get(1)));
+			score[KICKER] = highCards.get(0)+1;
+			return score;
+		}
+
+		if(pair>0){
+			score[ONE_PAIR] = pair+1;
+			highCards.remove(Integer.valueOf(pair));
+			score[KICKER] = highCards.get(0)+1;
+			return score;
+		}
+
+		score[HIGH_CARD] = highCards.get(0)+1;
+		score[KICKER] = highCards.get(1)+1;
+		return score;
+	}
+
+	private ArrayList<Integer> checkForMultiples(int[] ranks, int multiple){
+		ArrayList<Integer> multiples = new ArrayList<Integer>();
+		int p = 0;
+		for(int i = 12;i>=0;i--){
+			if(ranks[i]>=multiple){
+				multiples.add(i);
+				if(p==2)
+					break;
+			}
+		}
+		return multiples;
 	}
 
 	public void fold(){
@@ -550,7 +738,6 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		if(!GAMEOVER) {
 			// next player becomes the active one
 			m_Player = openPlayers.remove();
-
 			setAvailableActions();
 		}
 	}
@@ -757,4 +944,6 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			return holeCards[m_Player];
 		return null;
 	}
+
+
 }

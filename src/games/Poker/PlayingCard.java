@@ -4,15 +4,18 @@ import game.rules.play.Play;
 
 public class PlayingCard {
 
-    private short rank, suit;
-    private static String[] suits = { "♥", "♠", "♦", "♣" };
-    private static String[] ranks = { "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K" };
+    private int rank, suit;
+    static String[] suits = { "♥", "♠", "♦", "♣" };
+    static String[] ranks = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A" };
 
     public static String rankAsString( int rank ) {
         return ranks[rank];
     }
+    public static String suitAsString( int rank ) {
+        return suits[rank];
+    }
 
-    PlayingCard(short suit, short rank)
+    PlayingCard(int suit, int rank)
     {
         this.rank = rank;
         this.suit = suit;
@@ -23,11 +26,11 @@ public class PlayingCard {
         return "["+ suits[suit] + ranks[rank] + "]";
     }
 
-    public short getRank() {
+    public int getRank() {
         return rank;
     }
 
-    public short getSuit() {
+    public int getSuit() {
         return suit;
     }
 
