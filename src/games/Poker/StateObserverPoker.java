@@ -1,19 +1,12 @@
 package src.games.Poker;
 
-import TournamentSystem.tools.TSGameDataTransfer;
-import game.rules.play.Play;
+import games.LogManager;
 import games.ObserverBase;
 import games.StateObsNondeterministic;
 import games.StateObservation;
-import games.ZweiTausendAchtundVierzig.StateObserver2048;
-import tools.ScoreTuple;
-import tools.Types;
 import tools.Types.ACTIONS;
 
-import java.lang.management.PlatformLoggingMXBean;
-import java.lang.reflect.Array;
 import java.util.*;
-import java.util.function.IntFunction;
 
 /**
  * Class StateObservation observes the current state of the game, it has utility functions for
@@ -26,6 +19,7 @@ import java.util.function.IntFunction;
  *
  */
 public class StateObserverPoker extends ObserverBase implements StateObsNondeterministic {
+	private LogManager logMan;
 
 	public static final int ROYAL_FLUSH = 0;
 	public static final int STRAIGHT_FLUSH = 1;
@@ -542,7 +536,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		if(threeOfAKind>0){
 			pairs.remove(Integer.valueOf(threeOfAKind));
 			if(pairs.size()>0){
-				score[THREE_OF_A_KIND] = 15*(threeOfAKind+1)+pairs.get(0)+1;
+				score[FULL_HOUSE] = 15*(threeOfAKind+1)+pairs.get(0)+1;
 				return score;
 			}
 		}

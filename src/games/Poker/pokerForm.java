@@ -169,6 +169,9 @@ public class pokerForm {
         if(cards[0]!=null) {
             holeCard1.setText(cards[0].toString());
             holeCard2.setText(cards[1].toString());
+        }else{
+            holeCard1.setText("");
+            holeCard2.setText("");
         }
     }
 
@@ -178,12 +181,20 @@ public class pokerForm {
                 flopCard1.setText(cards[0].toString());
                 flopCard2.setText(cards[1].toString());
                 flopCard3.setText(cards[2].toString());
+            }else{
+                flopCard1.setText("");
+                flopCard2.setText("");
+                flopCard3.setText("");
             }
             if(cards[3] != null){
                 turnCard.setText(cards[3].toString());
+            }else{
+                turnCard.setText("");
             }
             if(cards[4] != null){
                 riverCard.setText(cards[4].toString());
+            }else{
+                riverCard.setText("");
             }
         }
     }
