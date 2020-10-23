@@ -94,6 +94,7 @@ public class ArenaPoker extends Arena   {
 	 */
 	public static void main(String[] args) throws IOException 
 	{
+		PokerLog.setup();
 		ArenaPoker t_Frame = new ArenaPoker("General Board Game Playing",true);
 
 		if (args.length==0) {

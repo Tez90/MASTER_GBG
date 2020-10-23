@@ -4,9 +4,12 @@ import games.LogManager;
 import games.ObserverBase;
 import games.StateObsNondeterministic;
 import games.StateObservation;
+import tools.Types;
 import tools.Types.ACTIONS;
 
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Class StateObservation observes the current state of the game, it has utility functions for
@@ -19,7 +22,6 @@ import java.util.*;
  *
  */
 public class StateObserverPoker extends ObserverBase implements StateObsNondeterministic {
-	private LogManager logMan;
 
 	public static final int ROYAL_FLUSH = 0;
 	public static final int STRAIGHT_FLUSH = 1;
@@ -32,7 +34,6 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	public static final int ONE_PAIR = 8;
 	public static final int HIGH_CARD = 9;
 	public static final int KICKER = 10;
-
 
 	private static final double REWARD_NEGATIVE = -1.0;
     private static final double REWARD_POSITIVE =  1.0;
@@ -76,6 +77,8 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	private static final long serialVersionUID = 12L;
 
 	public StateObserverPoker() {
+		////PokerLog.gameLog.log(Level.WARNING," brand new!");
+
 		GAMEOVER = false;
 		dealer = 0;
 
@@ -100,6 +103,8 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	}
 
 	public StateObserverPoker(StateObserverPoker other)	{
+		////PokerLog.gameLog.log(Level.WARNING," brand after blueprint!");
+
 		GAMEOVER = other.GAMEOVER;
 		this.dealer = other.dealer;
 
@@ -114,13 +119,13 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		this.m_deck = other.m_deck.copy();
 		this.m_phase = other.m_phase;
 
-		openPlayers = new LinkedList<Integer>();
-		int len = other.openPlayers.size();
+		openPlayers = new LinkedList<Integer>(other.openPlayers);
+		/*int len = other.openPlayers.size();
 		for(int i = 0;i<len;i++){
 			int x = other.openPlayers.remove();
 			this.openPlayers.add(x);
 			other.openPlayers.add(x);
-		}
+		}*/
 
 		chips =  new int[NUM_PLAYER];
 		activePlayers = new boolean[NUM_PLAYER];
@@ -141,24 +146,40 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	}
 	
 	public StateObserverPoker copy() {
+		////PokerLog.gameLog.log(Level.WARNING," create a copy of a stateobserver");
 		StateObserverPoker sot = new StateObserverPoker(this);
 		return sot;
 	}
 
 	public void initRound(){
+
+
 		m_deck = new CardDeck();
 		m_phase = 0;
 		// everybody with chips plays again
+
+		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": InitRound()");
+
 		for(int i = 0;i<NUM_PLAYER;i++){
 			if(chips[i]<=0) {
 				playingPlayers[i] = false;
 				activePlayers[i] = false;
 				foldedPlayers[i] = true;
-
 			}else{
 				activePlayers[i] = true;
 				foldedPlayers[i] = false;
 			}
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) +
+			//		": Player ["+Types.GUI_PLAYER_NAME[i]+"]" +
+			//		" Playing["+playingPlayers[i]+"]"+
+			//		" Active[" + activePlayers[i] +"]"+
+			//		" Chips[" + chips[i] +"]"
+			//		);
+		}
+
+		if(getNumPlayingPlayers()==1){
+			GAMEOVER = true;
+			return;
 		}
 
 		// cards
@@ -174,13 +195,18 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		while(!playingPlayers[dealer])
 			dealer = (dealer+1)%NUM_PLAYER;
 
+
+		//PokerLog.gameLog.log(Level.INFO, Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[dealer]+" is the dealer." );
+
 		int smallBlind = (dealer+1)%NUM_PLAYER;
 		while(!playingPlayers[smallBlind])
 			smallBlind = (smallBlind+1)%NUM_PLAYER;
+		//PokerLog.gameLog.log(Level.INFO, Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[smallBlind]+" is small blind.");
 
 		int bigBlind = (smallBlind+1)%NUM_PLAYER;
 		while(!playingPlayers[bigBlind])
 			bigBlind = (bigBlind+1)%NUM_PLAYER;
+		//PokerLog.gameLog.log(Level.INFO, Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[bigBlind]+" is big blind.");
 
 		if(chips[smallBlind]>SMALLBLIND) {
 			chips[smallBlind] -= SMALLBLIND;
@@ -188,6 +214,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		}else{
 			pots.add(chips[smallBlind],smallBlind,true);
 			chips[smallBlind] = 0;
+			//PokerLog.gameLog.log(Level.INFO, Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[smallBlind]+" does not have sufficient chips - all in with small blind.");
 		}
 
 		if(chips[bigBlind]>BIGBLIND) {
@@ -196,6 +223,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		}else{
 			pots.add(chips[bigBlind],bigBlind,true);
 			chips[bigBlind] = 0;
+			//PokerLog.gameLog.log(Level.INFO, Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[bigBlind]+" does not have sufficient chips - all in with big blind.");
 		}
 
 		int t = (bigBlind+1)%NUM_PLAYER;
@@ -211,16 +239,12 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			if(playingPlayers[i])
 				openPlayers.add(i);
 
-		if(getNumPlayingPlayers()==1){
-			GAMEOVER = true;
-		}
 
 		//small & big blind
 		dealCards();
 
 		dealer = (dealer+1)%NUM_PLAYER;
 	}
-
 
 	@Override
 	public boolean isGameOver() {
@@ -309,8 +333,24 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	 * 			It is the reward from the perspective of {@code refer}.
 	 */
 	public double getGameScore(StateObservation refer) {
-        return 0; 
+		//return Math.random();
+		StateObserverPoker sop = (StateObserverPoker)refer;
+		return sop.getPot();
 	}
+
+	/**
+	 * The cumulative reward, seen from the perspective of {@code referingState}'s player. This
+	 * relativeness is usually only relevant for games with more than one player.
+	 * @param referringState	see {@link #getGameScore(StateObservation)}
+	 * @param rewardIsGameScore if true, use game score as reward; if false, use a different,
+	 * 		  game-specific reward
+	 * @return  the cumulative reward
+	 */
+	@Override
+	public double getReward(StateObservation referringState, boolean rewardIsGameScore){
+		return Math.random();
+	}
+
 
 	public double getMinGameScore() { return REWARD_NEGATIVE; }
 
@@ -326,41 +366,44 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			// set small blind
 			// set big blind
 			// deal holecards
-
-
-			System.out.println("Deal holecards");
+			if(m_deck.getTotalCards()<52){
+				//PokerLog.gameLog.severe("SOMETHINGS WRONG!");
+			}
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + "Deal Holecards.");
 			for(int i = 0;i<NUM_PLAYER;i++){
 				this.holeCards[i][0] = this.m_deck.draw();
 				this.holeCards[i][1] = this.m_deck.draw();
+				//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + "Player ["+ Types.GUI_PLAYER_NAME[i]+"] - "+this.holeCards[i][0].toString() +"/"+this.holeCards[i][1]);
 			}
 		}
 
 		if(m_phase == 1){
 			// deal flop
-			System.out.println("Deal flop");
 			this.communityCards[0] = this.m_deck.draw();
 			this.communityCards[1] = this.m_deck.draw();
 			this.communityCards[2] = this.m_deck.draw();
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + "Deal Flop in "+Integer.toString(System.identityHashCode(this))+" : "+this.communityCards[0]+"/"+this.communityCards[1]+"/"+this.communityCards[2]) ;
 		}
 
 		if(m_phase == 2){
 			// deal turn
-			System.out.println("Deal turn");
 			this.communityCards[3] = this.m_deck.draw();
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + "Deal Turn in "+Integer.toString(System.identityHashCode(this))+" : "+this.communityCards[3]);
+
 		}
 
 		if(m_phase == 3){
 			// deal river
-			System.out.println("Deal river");
 			this.communityCards[4] = this.m_deck.draw();
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + "Deal River in "+Integer.toString(System.identityHashCode(this))+" : "+this.communityCards[4]);
 		}
 
 		if(m_phase > 3){
-
-			int[] scores = determineWinner();
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + "Showdown - finding the winner...");
+			long[] scores = determineWinner();
 			boolean[][] claims = pots.getClaims();
 			for(int p = 0;p<claims.length;p++){
-				int maxScore = 0;
+				long maxScore = 0;
 				ArrayList<Integer> winners = new ArrayList<Integer>();
 				for(int i = 0;i<scores.length;i++) {
 					if(maxScore == scores[i])
@@ -370,17 +413,14 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 						winners.clear();
 						winners.add(i);
 					}
-
 				}
 				int numWinners = winners.size();
-
-				System.out.println("\r\n------------------------------RESULT---------------------------------------");
 				for(int winner:winners){
-					System.out.print(Integer.toString(winner)+" has won Pot ("+Integer.toString(p)+")");
+					//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Integer.toString(winner)+" has won Pot ("+Integer.toString(p)+") with "+Integer.toString(pots.getPotSize(p)/numWinners) +" chips");
 					chips[winner] += pots.getPotSize(p)/numWinners;
 				}
-				System.out.println("\r\n------------------------------RESULT END---------------------------------------");
 			}
+
 			initRound();
 			setAvailableActions();
 		}else {
@@ -388,11 +428,12 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		}
 	}
 
-	public int[] determineWinner(){
+	public long[] determineWinner(){
 		ArrayList<PlayingCard> cards = new ArrayList<PlayingCard>();
-		int[] handscore = new int[NUM_PLAYER];
+		long[] handscore = new long[NUM_PLAYER];
 		for(int i = 0; i < NUM_PLAYER;i++){
 			if(!foldedPlayers[i]){
+				cards = new ArrayList<PlayingCard>();
 				cards.add(holeCards[i][0]);
 				cards.add(holeCards[i][1]);
 				cards.add(communityCards[0]);
@@ -400,12 +441,15 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 				cards.add(communityCards[2]);
 				cards.add(communityCards[3]);
 				cards.add(communityCards[4]);
-				handscore[i] = findMaxScore(findBestHand(cards));
+				//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[i]+" has...");
+				int[] bestHand = findBestHand(cards);
+				handscore[i] = findMaxScore(bestHand);
+				//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[i]+" has a score of "+Long.toString(handscore[i]));
 			}else{
+				//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[i]+" has folded.");
 				handscore[i] = -1;
 			}
 		}
-
 		return handscore;
 	}
 
@@ -422,11 +466,12 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		HIGH_CARD       = {0-12}  [13]; 13^1
 		KICKER          = {0-12}  [13]; 13^0
 	 */
-	private int findMaxScore(int[] scores){
+	private long findMaxScore(int[] scores){
 		int[] exponent = { 12, 11, 10, 8, 7, 6, 5, 3, 2, 1, 0};
 		for(int i=0;i<scores.length;i++){
-			if(scores[i]>0)
-				return scores[i]*13^exponent[i]+scores[10];
+			if(scores[i]>0) {
+				return scores[i] * (long) Math.pow(14, exponent[i]) + scores[10];
+			}
 		}
 		return 0;
 	}
@@ -438,7 +483,6 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		int[] ranks = new int[13];
 
 		for(PlayingCard c : cards){
-			System.out.print(c.toString()+"   ||   ");
 			suits[c.getSuit()]++;
 			ranks[c.getRank()]++;
 		}
@@ -518,6 +562,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 				if (straight == 12) {
 					//straight flush!
 					score[ROYAL_FLUSH] = flush+1;
+					//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ":      Royal Flush!");
 					return score;
 				}
 				score[STRAIGHT_FLUSH] = straight+1;
@@ -529,6 +574,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			score[FOUR_OF_A_KIND] = fourOfAKind+1;
 			highCards.remove(Integer.valueOf(fourOfAKind));
 			score[KICKER] = highCards.get(0)+1;
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ":      Four of a Kind with "+PlayingCard.rankAsString(fourOfAKind) + " and " + PlayingCard.rankAsString(highCards.get(0)) + " as a kicker");
 			return score;
 		}
 
@@ -537,6 +583,8 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			pairs.remove(Integer.valueOf(threeOfAKind));
 			if(pairs.size()>0){
 				score[FULL_HOUSE] = 15*(threeOfAKind+1)+pairs.get(0)+1;
+				//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ":      Fullhouse with "+PlayingCard.rankAsString(threeOfAKind) + " and " + PlayingCard.rankAsString(pairs.get(0) ));
+
 				return score;
 			}
 		}
@@ -544,11 +592,15 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		if(flush>-1){
 			//TODO: Wenn mehrere Spieler einen Flush haben (unterschiedliche Farben sind nicht möglich gewinnt der Spieler mit der höchsten Karte, die NICHT alle Spieler haben (also keine Community Karten)
 			score[FLUSH] = flush+1;
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ":      Flush with " + PlayingCard.suitAsString(flush));
+
 			return score;
 		}
 
 		if(straight>-1){
 			score[STRAIGHT] = straight+1;
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ":      Straight till " + PlayingCard.rankAsString(straight) + "");
+
 			return score;
 		}
 
@@ -556,6 +608,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			score[THREE_OF_A_KIND] = threeOfAKind+1;
 			highCards.remove(Integer.valueOf(threeOfAKind));
 			score[KICKER] = highCards.get(0)+1;
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ":      Three of a kind " + PlayingCard.rankAsString(threeOfAKind) + " and " + PlayingCard.rankAsString(highCards.get(0)) + " as a kicker.");
 			return score;
 		}
 
@@ -564,6 +617,8 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			highCards.remove(Integer.valueOf(pairs.get(0)));
 			highCards.remove(Integer.valueOf(pairs.get(1)));
 			score[KICKER] = highCards.get(0)+1;
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ":      Two pairs " + PlayingCard.rankAsString(pairs.get(0)) + " and " + PlayingCard.rankAsString(pairs.get(1)) + " with " + PlayingCard.rankAsString(highCards.get(0)) + " as a kicker.");
+
 			return score;
 		}
 
@@ -571,11 +626,15 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			score[ONE_PAIR] = pair+1;
 			highCards.remove(Integer.valueOf(pair));
 			score[KICKER] = highCards.get(0)+1;
+			//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ":      A pair " + PlayingCard.rankAsString(pairs.get(0)) + " with " + PlayingCard.rankAsString(highCards.get(0)) + " as a kicker.");
+
 			return score;
 		}
 
 		score[HIGH_CARD] = highCards.get(0)+1;
 		score[KICKER] = highCards.get(1)+1;
+		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ":      High Card " + PlayingCard.rankAsString(highCards.get(0))  + " with " + PlayingCard.rankAsString(highCards.get(1)) + " as a kicker.");
+
 		return score;
 	}
 
@@ -593,18 +652,18 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	}
 
 	public void fold(){
-		System.out.println("Player "+Integer.toString(m_Player)+": 'FOLD'");
+		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[m_Player]+": 'FOLD'");
 		activePlayers[m_Player] = false;
 		foldedPlayers[m_Player] = true;
 	}
 
 	public void check(){
-		System.out.println("Player "+Integer.toString(m_Player)+": 'CHECK'");
+		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[m_Player]+": 'CHECK'");
 	}
 
 	public void allIn(){
 		int betsize = chips[m_Player];
-		System.out.println("Player "+Integer.toString(m_Player)+": ALL IN ("+Integer.toString(betsize)+")");
+		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[m_Player]+": ALL IN ("+Integer.toString(betsize)+")");
 		boolean raise = betsize > pots.getOpenPlayer(m_Player);
 
 		pots.add(betsize, m_Player,true);
@@ -625,7 +684,14 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 
 	public void bet(int m_betsize){
 		int betsize = m_betsize;
-		System.out.println("Player "+Integer.toString(m_Player)+": BET ("+Integer.toString(betsize)+")");
+
+		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[m_Player]+": BET ("+Integer.toString(betsize)+")");
+		betSub(betsize);
+
+	}
+
+	public void betSub(int m_betsize){
+		int betsize = m_betsize;
 
 		pots.add(betsize, m_Player);
 		chips[m_Player] -= betsize;
@@ -646,10 +712,11 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 
 	public void call(){
 		int toCall = pots.getOpenPlayer(m_Player);
-		System.out.println("Player "+Integer.toString(m_Player)+": CALL ("+Integer.toString(toCall)+")");
+		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[m_Player]+": CALL ("+Integer.toString(toCall)+")");
 
 		// shouldn't happen - action is only available if player has more chips.
 		if(toCall > chips[m_Player]){
+			//PokerLog.gameLog.severe("Player calls with not enough chips.");
 			toCall = chips[m_Player];
 		}
 		pots.add(toCall,m_Player);
@@ -662,7 +729,8 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 
 	public void raise(){
 		int betsize = pots.getOpenPlayer(m_Player)+BIGBLIND;
-		bet(betsize);
+		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[m_Player]+": 'RAISE' ("+Integer.toString(betsize)+")");
+		betSub(betsize);
 	}
 
 
@@ -670,16 +738,12 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	/**
 	 * Advance the current state with 'action' to a new state
 	 * Actions:
-	 * - fold: 0
-	 * - check:
-	 * - bet:
-	 * - call:
-	 * - raise[1]:
-	 * - raise[2]:
-	 * - raise[3]:
-	 * - raise[4]:
-	 * - raise[5]:
-	 *
+	 * - 0 -> FOLD	: give up the current round
+	 * - 1 -> CHECK	: pass for the current action (wait for someone else to do something to react on)
+	 * - 2 -> BET	: bet the "Big Blind"
+	 * - 3 -> CALL	: bet the same amount as the previous player bet
+	 * - 4 -> RAISE	: raise the last bet by the "Big Blind"
+	 * - 5 -> ALL IN: bet all remaining chips
 	 * @param action
 	 */
 	public void advance(ACTIONS action) {
@@ -701,7 +765,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			case 4: // RAISE
 				raise();
 				break;
-			case 5: // RAISE
+			case 5: // ALL IN
 				allIn();
 				break;
 
@@ -713,20 +777,23 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 				dealCards();
 			dealCards();
 		}else {
-			// If there are no persons left with an open action the dealer will reveal the next card(s)
-			if (openPlayers.size() == 0) {
-				System.out.println("Pot "+pots.toString());
-				System.out.println("\r\n------------------------------END---------------------------------------");
-
-				// next player from the last action will have the next action if it's not a showdown
-				m_Player = (m_Player + 1) % NUM_PLAYER;
-				for (int i = m_Player; i < NUM_PLAYER; i++)
-					if (playingPlayers[i] && activePlayers[i])
-						openPlayers.add(i);
-				for (int i = 0; i < m_Player; i++)
-					if (playingPlayers[i] && activePlayers[i])
-						openPlayers.add(i);
+			if(getNumPlayingPlayers()-getNumfoldedPlayers()==1&&openPlayers.size()==1){
+				while(m_phase<4)
+					dealCards();
 				dealCards();
+			}else {
+				// If there are no persons left with an open action the dealer will reveal the next card(s)
+				if (openPlayers.size() == 0) {
+					// next player from the last action will have the next action if it's not a showdown
+					m_Player = (m_Player + 1) % NUM_PLAYER;
+					for (int i = m_Player; i < NUM_PLAYER; i++)
+						if (playingPlayers[i] && activePlayers[i])
+							openPlayers.add(i);
+					for (int i = 0; i < m_Player; i++)
+						if (playingPlayers[i] && activePlayers[i])
+							openPlayers.add(i);
+					dealCards();
+				}
 			}
 		}
 		if(!GAMEOVER) {
@@ -769,7 +836,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			isNextActionDeterministic = false;
 		}else {
 			// If there are no persons left with an open action the dealer will reveal the next card(s)
-			if (openPlayers.size() == 0) {
+			if (openPlayers.size() == 0 || getNumPlayingPlayers()-getNumfoldedPlayers()==1&&openPlayers.size()==1) {
 				isNextActionDeterministic = false;
 			} else {
 				isNextActionDeterministic = true;
@@ -798,8 +865,6 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		}else {
 			// If there are no persons left with an open action the dealer will reveal the next card(s)
 			if (openPlayers.size() == 0) {
-				System.out.println("Pot "+pots.toString());
-				System.out.println("\r\n------------------------------END---------------------------------------");
 
 				// next player from the last action will have the next action if it's not a showdown
 				m_Player = (m_Player + 1) % NUM_PLAYER;
@@ -849,11 +914,11 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	}
 
 	/**
-	 * Given the current state in m_Table, what are the available actions? 
 	 * Set them in member ACTIONS[] actions.
 	 */
 	public void setAvailableActions() {
 		availableActions.clear();
+
 		// You always have the option to fold.
 		availableActions.add(ACTIONS.fromInt(0)); // FOLD
 
@@ -873,9 +938,8 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		if(pots.getOpenPlayer(m_Player)>0&&chips[m_Player]>pots.getOpenPlayer(m_Player)+BIGBLIND)
 			availableActions.add(ACTIONS.fromInt(4)); // RAISE
 
-		// You can only raise if somebody has bet before
-		if(true)
-			availableActions.add(ACTIONS.fromInt(5)); // RAISE
+		// You always have the option to go All In.
+				availableActions.add(ACTIONS.fromInt(5)); // All In
 	}
 	
 	public ACTIONS getAction(int i) {
@@ -894,7 +958,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	}
 	
 	public int getNumPlayers() {
-		return NUM_PLAYER;				// TicTacToe is a 2-player game
+		return NUM_PLAYER;
 	}
 
 	public int[] getChips(){
@@ -921,6 +985,14 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		int p = 0;
 		for(int i = 0;i<playingPlayers.length;i++)
 			if(playingPlayers[i])
+				p++;
+		return p;
+	}
+
+	public int getNumfoldedPlayers(){
+		int p = 0;
+		for(int i = 0;i<playingPlayers.length;i++)
+			if(foldedPlayers[i])
 				p++;
 		return p;
 	}
