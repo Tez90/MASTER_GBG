@@ -18,12 +18,12 @@ public class Pots {
                 this.pots.add(new Pot(p));
         }
 
-        public int add(int o_chips, int player,boolean allin) {
-            int chips = o_chips;
+        public double add(double o_chips, int player,boolean allin) {
+            double chips = o_chips;
             int numPot = pots.size();
             for(int i = 0;i<numPot;i++){
                 Pot pot = pots.get(i);
-                int toCall = pot.getOpenPlayer(player);
+                double toCall = pot.getOpenPlayer(player);
 
                 if(chips >= toCall) {
                     pot.add(toCall, player);
@@ -42,7 +42,7 @@ public class Pots {
             return 0;
         }
 
-        public int add(int o_chips, int player){
+        public double add(double o_chips, int player){
            return add(o_chips,player,false);
         }
 
@@ -81,7 +81,7 @@ public class Pots {
             return claims;
         }
 
-        public int getPotSize(int p){
+        public double getPotSize(int p){
             return this.pots.get(p).getSize();
         }
 

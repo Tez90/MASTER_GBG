@@ -47,7 +47,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	protected ArrayList<ACTIONS> availableActions = new ArrayList();	// holds all available actions
 
 	private CardDeck m_deck;
-	private int chips[];
+	private double chips[];
 	private PlayingCard[][] holeCards; //[player][card]
 	private PlayingCard[] communityCards;
 	private int dealer;
@@ -83,7 +83,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		dealer = 0;
 
 		// information about the player:
-		chips =  new int[NUM_PLAYER];
+		chips =  new double[NUM_PLAYER];
 		activePlayers = new boolean[NUM_PLAYER];
 		foldedPlayers = new boolean[NUM_PLAYER];
 		playingPlayers = new boolean[NUM_PLAYER];
@@ -110,7 +110,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 
 		m_Player = other.m_Player;
 
-		chips =  new int[NUM_PLAYER];
+		chips =  new double[NUM_PLAYER];
 		holeCards = new PlayingCard[NUM_PLAYER][2];
 		communityCards = new PlayingCard[5];
 
@@ -127,7 +127,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 			other.openPlayers.add(x);
 		}*/
 
-		chips =  new int[NUM_PLAYER];
+		chips =  new double[NUM_PLAYER];
 		activePlayers = new boolean[NUM_PLAYER];
 		playingPlayers = new boolean[NUM_PLAYER];
 		foldedPlayers = new boolean[NUM_PLAYER];
@@ -662,7 +662,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	}
 
 	public void allIn(){
-		int betsize = chips[m_Player];
+		double betsize = chips[m_Player];
 		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[m_Player]+": ALL IN ("+Integer.toString(betsize)+")");
 		boolean raise = betsize > pots.getOpenPlayer(m_Player);
 
@@ -711,7 +711,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 	}
 
 	public void call(){
-		int toCall = pots.getOpenPlayer(m_Player);
+		double toCall = pots.getOpenPlayer(m_Player);
 		//PokerLog.gameLog.info(Integer.toString(System.identityHashCode(this)) + ": " + Types.GUI_PLAYER_NAME[m_Player]+": CALL ("+Integer.toString(toCall)+")");
 
 		// shouldn't happen - action is only available if player has more chips.
@@ -961,7 +961,7 @@ public class StateObserverPoker extends ObserverBase implements StateObsNondeter
 		return NUM_PLAYER;
 	}
 
-	public int[] getChips(){
+	public double[] getChips(){
 		return chips;
 	}
 

@@ -86,10 +86,10 @@ public class GameBoardPokerGui extends JFrame {
 	}
 
 	public void updatePlayerInfo(){
-		int[] chips = m_gb.m_so.getChips();
+		double[] chips = m_gb.m_so.getChips();
 		boolean[] active = m_gb.m_so.getActivePlayers();
 		for(int i = 0 ; i < StateObserverPoker.NUM_PLAYER ; i++){
-			playerChips[i].setText(Integer.toString(chips[i]));
+			playerChips[i].setText(Double.toString(chips[i]));
 			playerActive[i].setText(Boolean.toString(active[i]));
 		}
 	}

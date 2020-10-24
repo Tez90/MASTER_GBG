@@ -1,18 +1,18 @@
 package src.games.Poker;
 
 public class Pot {
-    private int size;
-    private int[] open;
+    private double size;
+    private double[] open;
     private boolean[] claim;
 
     public Pot(){
-        open = new int[StateObserverPoker.NUM_PLAYER];
+        open = new double[StateObserverPoker.NUM_PLAYER];
         claim = new boolean[StateObserverPoker.NUM_PLAYER];
     }
 
     public Pot(Pot opot){
         this.size =  opot.size;
-        this.open = new int[opot.open.length];
+        this.open = new double[opot.open.length];
         this.claim = new boolean[opot.open.length];
         for(int i=0;i<open.length;i++) {
             this.open[i] = opot.open[i];
@@ -20,15 +20,15 @@ public class Pot {
         }
     }
 
-    public int getOpenPlayer(int player){
+    public double getOpenPlayer(int player){
         return open[player];
     }
 
 
-    public void add(int chips, int player){
+    public void add(double chips, int player){
         size += chips;
 
-        int dif =  chips - open[player];
+        double dif =  chips - open[player];
 
         if(dif > 0) {
             for (int i = 0; i < open.length; i++)
@@ -39,10 +39,10 @@ public class Pot {
         open[player] -= chips;
     }
 
-    public Pot split(int chips, int player){
+    public Pot split(double chips, int player){
         Pot splitPot = new Pot();
 
-        int dif = open[player]-chips;
+        double dif = open[player]-chips;
         splitPot.size = dif*getPaid();
 
         this.size -= splitPot.size;
@@ -64,12 +64,12 @@ public class Pot {
 
     private int getPaid(){
         int p = 0;
-        for(int i:open)
+        for(double i:open)
             p+=i>0?0:1;
         return p;
     }
 
-    public int getSize(){
+    public double getSize(){
         return size;
     }
 
@@ -81,7 +81,7 @@ public class Pot {
         String sout = "";
         sout += "Pot: " + size + " (";
         for(int i = 0 ; i < open.length ; i++)
-            sout += Integer.toString(i) + ": "+Integer.toString(open[i])+", ";
+            sout += Integer.toString(i) + ": "+Double.toString(open[i])+", ";
         return sout + ")";
     }
     public boolean[] getClaims(){
